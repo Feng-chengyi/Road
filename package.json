@@ -1,0 +1,17 @@
+{
+  "name": "yantu",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "build": "cd client && npm install && npm run build",
+    "start": "cd server && npm start",
+    "setup": "cd server && npm install && cd ../client && npm install",
+    "render-build": "cd client && npm install && npm run build && cd ../server && npm install"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

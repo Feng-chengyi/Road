@@ -1,0 +1,6 @@
+build: npm run render-build
+start: cd server && node src/index.js
+env:
+  - NODE_ENV
+  - JWT_SECRET
+  - PORT

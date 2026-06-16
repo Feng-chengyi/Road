@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>研途 - 考研备考进度追踪</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg-deep:#060a14;
+  --bg-primary:#0a0f1e;
+  --bg-card:#111a2e;
+  --bg-card-alt:#162040;
+  --bg-input:#0d1428;
+  --accent:#f0b429;
+  --accent-glow:rgba(240,180,41,0.15);
+  --accent2:#7c6cf0;
+  --accent2-glow:rgba(124,108,240,0.15);
+  --green:#2dd4a8;
+  --green-glow:rgba(45,212,168,0.12);
+  --red:#f06565;
+  --blue:#38bdf8;
+  --text:#eef0f6;
+  --text-sec:#8892b0;
+  --text-muted:#4a5578;
+  --border:rgba(255,255,255,0.05);
+  --shadow:0 8px 32px rgba(0,0,0,0.4);
+  --radius:16px;
+  --radius-sm:10px;
+  --radius-xs:6px;
+}
+html,body{height:100%;font-family:'Noto Sans SC',sans-serif;background:#000;color:var(--text);overflow:hidden;-webkit-tap-highlight-color:transparent}
+#app-root{width:100%;max-width:430px;height:100%;margin:0 auto;position:relative;overflow:hidden;background:var(--bg-deep)}
+
+/* Screen system */
+.screen{position:absolute;inset:0;flex-direction:column;transition:transform .42s cubic-bezier(.4,0,.2,1),opacity .35s ease;display:none;overflow:hidden}
+.screen.active{display:flex}
+.screen.slide-out{transform:translateX(-30%);opacity:0}
+.screen.slide-in{transform:translateX(100%)}
+.screen.slide-in.active{transform:translateX(0)}
+
+/* Scrollable */
+.scroll-y{overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;flex:1}
+.scroll-y::-webkit-scrollbar{display:none}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;font-family:inherit;font-weight:500;cursor:pointer;transition:all .25s ease;border-radius:var(--radius-sm)}
+.btn-primary{background:linear-gradient(135deg,#f0b429,#e09800);color:#0a0f1e;padding:14px 32px;font-size:16px;font-weight:700;box-shadow:0 4px 20px rgba(240,180,41,0.3)}
+.btn-primary:active{transform:scale(.96);box-shadow:0 2px 10px rgba(240,180,41,0.2)}
+.btn-ghost{background:transparent;color:var(--text-sec);padding:12px 24px;font-size:14px;border:1px solid var(--border)}
+.btn-ghost:active{background:rgba(255,255,255,0.03)}
+.btn-sm{padding:8px 16px;font-size:13px;border-radius:var(--radius-xs)}
+.btn-icon{width:40px;height:40px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border);color:var(--text-sec);font-size:18px}
+.btn-icon:active{background:var(--bg-card-alt)}
+.btn-fab{width:56px;height:56px;border-radius:18px;background:linear-gradient(135deg,#f0b429,#e09800);color:#0a0f1e;font-size:28px;box-shadow:0 6px 24px rgba(240,180,41,0.35);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.btn-fab:active{transform:scale(.92)}
+
+/* Inputs */
+.input-group{margin-bottom:16px}
+.input-group label{display:block;font-size:13px;color:var(--text-sec);margin-bottom:8px;font-weight:500}
+.input{width:100%;padding:14px 16px;background:var(--bg-input);border:1.5px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:15px;font-family:inherit;transition:border-color .2s,box-shadow .2s;outline:none}
+.input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.input::placeholder{color:var(--text-muted)}
+select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238892b0' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center}
+
+/* Cards */
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden}
+.card-glow::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:2px;border-radius:var(--radius) var(--radius) 0 0}
+
+/* Chip */
+.chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:500}
+.chip-dot{width:6px;height:6px;border-radius:50%}
+
+/* Checkbox */
+.checkbox-wrap{display:flex;align-items:center;gap:12px;cursor:pointer}
+.checkbox{width:22px;height:22px;border-radius:7px;border:2px solid var(--text-muted);display:flex;align-items:center;justify-content:center;transition:all .25s;flex-shrink:0}
+.checkbox.checked{background:var(--accent);border-color:var(--accent)}
+.checkbox.checked svg{opacity:1;transform:scale(1)}
+.checkbox svg{opacity:0;transform:scale(0);transition:all .25s}
+
+/* Progress bar */
+.progress-bar{height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+
+/* ============ SPLASH ============ */
+#screen-splash{background:radial-gradient(ellipse at 50% 30%,rgba(240,180,41,0.08),transparent 70%),var(--bg-deep);align-items:center;justify-content:center;text-align:center}
+.splash-logo{width:88px;height:88px;background:linear-gradient(135deg,#f0b429,#e09800);border-radius:26px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;box-shadow:0 8px 40px rgba(240,180,41,0.3);animation:float 3s ease-in-out infinite}
+.splash-logo svg{width:48px;height:48px}
+.splash-title{font-size:32px;font-weight:900;letter-spacing:-0.5px;margin-bottom:8px}
+.splash-title span{color:var(--accent)}
+.splash-sub{font-size:14px;color:var(--text-sec);margin-bottom:48px}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+
+/* ============ LOGIN ============ */
+#screen-login{background:var(--bg-deep)}
+.login-header{padding:60px 28px 32px;text-align:center}
+.login-header h1{font-size:26px;font-weight:700;margin-bottom:8px}
+.login-header p{font-size:14px;color:var(--text-sec)}
+.login-form{padding:0 28px;flex:1}
+.login-footer{padding:28px;text-align:center}
+.login-footer a{color:var(--accent);text-decoration:none;font-weight:500;cursor:pointer}
+
+/* Tab switcher */
+.tab-switch{display:flex;background:var(--bg-input);border-radius:var(--radius-sm);padding:3px;margin-bottom:24px}
+.tab-switch-btn{flex:1;padding:10px;border:none;background:transparent;color:var(--text-muted);font-family:inherit;font-size:14px;font-weight:500;border-radius:8px;cursor:pointer;transition:all .25s}
+.tab-switch-btn.active{background:var(--bg-card);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,0.2)}
+
+/* ============ REGISTER STEPS ============ */
+.reg-screen{background:var(--bg-deep)}
+.reg-header{padding:48px 28px 0;display:flex;align-items:center;gap:16px}
+.reg-header .back-btn{width:40px;height:40px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.reg-header .back-btn:active{background:var(--bg-card-alt)}
+.reg-header h2{font-size:20px;font-weight:700}
+.reg-progress{padding:20px 28px 0;display:flex;gap:8px}
+.reg-progress .bar{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.06)}
+.reg-progress .bar.filled{background:var(--accent)}
+.reg-body{padding:24px 28px;flex:1;overflow-y:auto}
+.reg-body::-webkit-scrollbar{display:none}
+.reg-footer{padding:20px 28px 36px;display:flex;gap:12px}
+.reg-footer .btn{flex:1}
+
+/* Subject setup */
+.subject-tag{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;background:var(--bg-card);border:1.5px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:all .25s;margin:0 8px 8px 0;font-size:14px;user-select:none}
+.subject-tag.selected{border-color:var(--accent);background:var(--accent-glow);color:var(--accent)}
+.subject-tag .tag-dot{width:8px;height:8px;border-radius:50%}
+
+/* ============ MAIN APP ============ */
+#screen-main{background:var(--bg-deep)}
+.app-header{padding:52px 24px 16px;position:relative;z-index:2}
+.app-header-row{display:flex;align-items:center;justify-content:space-between}
+.app-greeting{font-size:13px;color:var(--text-sec);margin-bottom:2px}
+.app-title{font-size:22px;font-weight:700}
+.app-date{font-size:12px;color:var(--text-muted)}
+.header-right{display:flex;gap:8px}
+.avatar{width:40px;height:40px;border-radius:14px;background:linear-gradient(135deg,var(--accent),#e09800);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:var(--bg-deep)}
+
+/* Tab bar */
+.tab-bar{display:flex;padding:8px 16px;padding-bottom:max(8px,env(safe-area-inset-bottom));background:var(--bg-primary);border-top:1px solid var(--border);position:relative;z-index:10}
+.tab-bar-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all .2s}
+.tab-bar-item svg{width:24px;height:24px;color:var(--text-muted);transition:color .2s}
+.tab-bar-item span{font-size:10px;color:var(--text-muted);font-weight:500;transition:color .2s}
+.tab-bar-item.active svg{color:var(--accent)}
+.tab-bar-item.active span{color:var(--accent)}
+
+/* Tab pages */
+.tab-page{display:none;flex:1;overflow:hidden;flex-direction:column}
+.tab-page.active{display:flex}
+.tab-page .scroll-y{padding:0 20px 20px}
+
+/* ============ DASHBOARD ============ */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 14px;text-align:center;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.stat-card:nth-child(1)::before{background:linear-gradient(90deg,var(--accent),transparent)}
+.stat-card:nth-child(2)::before{background:linear-gradient(90deg,var(--green),transparent)}
+.stat-card:nth-child(3)::before{background:linear-gradient(90deg,var(--accent2),transparent)}
+.stat-value{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;line-height:1.2}
+.stat-value.amber{color:var(--accent)}
+.stat-value.green{color:var(--green)}
+.stat-value.purple{color:var(--accent2)}
+.stat-label{font-size:11px;color:var(--text-muted);margin-top:4px}
+.stat-sub{font-size:10px;color:var(--text-muted);margin-top:2px}
+
+.chart-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:14px}
+.chart-card-title{font-size:15px;font-weight:600;margin-bottom:4px}
+.chart-card-sub{font-size:12px;color:var(--text-muted);margin-bottom:16px}
+.chart-canvas{width:100%;border-radius:var(--radius-xs)}
+
+.section-title{font-size:16px;font-weight:600;margin:20px 0 12px;display:flex;align-items:center;justify-content:space-between}
+.section-title .more{font-size:12px;color:var(--accent);font-weight:500;cursor:pointer}
+
+/* Plan list item */
+.plan-item{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;transition:background .2s}
+.plan-item:active{background:var(--bg-card-alt)}
+.plan-item .plan-time{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-muted);min-width:44px}
+.plan-item .plan-info{flex:1;min-width:0}
+.plan-item .plan-name{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plan-item .plan-name.done{text-decoration:line-through;color:var(--text-muted)}
+.plan-item .plan-subject{font-size:11px;color:var(--text-muted);margin-top:2px}
+.plan-item .plan-check{width:22px;height:22px;border-radius:7px;border:2px solid var(--text-muted);display:flex;align-items:center;justify-content:center;transition:all .25s;flex-shrink:0;cursor:pointer}
+.plan-item .plan-check.checked{background:var(--green);border-color:var(--green)}
+
+/* Record item */
+.record-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.record-item:last-child{border-bottom:none}
+.record-color{width:4px;height:36px;border-radius:2px}
+.record-info{flex:1}
+.record-name{font-size:13px;font-weight:500}
+.record-meta{font-size:11px;color:var(--text-muted);margin-top:2px}
+.record-duration{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text-sec)}
+
+/* ============ SUBJECTS PAGE ============ */
+.subjects-grid{display:grid;gap:12px}
+.subject-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden}
+.subject-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.subject-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.subject-card-name{font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px}
+.subject-card-name .dot{width:10px;height:10px;border-radius:50%}
+.subject-card-actions{display:flex;gap:6px}
+.subject-card-actions button{width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px}
+.subject-card-actions button:active{background:rgba(255,255,255,0.08)}
+.subject-card .meta-row{display:flex;gap:16px;margin-bottom:14px}
+.subject-card .meta-item{font-size:12px;color:var(--text-sec)}
+.subject-card .meta-item strong{color:var(--text);font-family:'JetBrains Mono',monospace}
+.subject-card .progress-label{display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:8px}
+
+/* ============ PLANS PAGE ============ */
+.plans-header{display:flex;align-items:center;justify-content:space-between;padding:0 0 16px}
+.plans-header h3{font-size:18px;font-weight:700}
+.date-nav{display:flex;align-items:center;gap:12px}
+.date-nav button{width:32px;height:32px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.date-nav .current-date{font-size:14px;font-weight:500;min-width:100px;text-align:center}
+.plans-date-strip{display:flex;gap:6px;margin-bottom:20px;overflow-x:auto;padding-bottom:4px}
+.plans-date-strip::-webkit-scrollbar{display:none}
+.date-chip{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 14px;border-radius:var(--radius-sm);background:var(--bg-card);border:1.5px solid var(--border);cursor:pointer;min-width:52px;transition:all .2s}
+.date-chip.active{border-color:var(--accent);background:var(--accent-glow)}
+.date-chip .day-name{font-size:10px;color:var(--text-muted);font-weight:500}
+.date-chip .day-num{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:600}
+.date-chip.active .day-name,.date-chip.active .day-num{color:var(--accent)}
+.date-chip.today{position:relative}
+.date-chip.today::after{content:'';position:absolute;bottom:4px;width:4px;height:4px;border-radius:50%;background:var(--accent)}
+
+.plan-section{margin-bottom:20px}
+.plan-section-title{font-size:13px;font-weight:500;color:var(--text-sec);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.plan-section-title .count{font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:12px}
+.add-plan-btn{display:flex;align-items:center;gap:8px;padding:14px;background:rgba(255,255,255,0.02);border:1.5px dashed var(--border);border-radius:var(--radius-sm);color:var(--text-muted);font-size:14px;cursor:pointer;margin-top:8px;transition:all .2s;justify-content:center}
+.add-plan-btn:active{background:var(--bg-card);border-color:var(--accent);color:var(--accent)}
+
+/* ============ PROFILE PAGE ============ */
+.profile-header-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;text-align:center;margin-bottom:20px;position:relative;overflow:hidden}
+.profile-header-card::before{content:'';position:absolute;top:0;left:0;right:0;height:80px;background:linear-gradient(135deg,rgba(240,180,41,0.1),rgba(124,108,240,0.1))}
+.profile-avatar{width:72px;height:72px;border-radius:22px;background:linear-gradient(135deg,var(--accent),#e09800);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:var(--bg-deep);margin:0 auto 14px;position:relative;border:3px solid var(--bg-card)}
+.profile-name{font-size:18px;font-weight:700;position:relative}
+.profile-school{font-size:13px;color:var(--text-sec);margin-top:4px;position:relative}
+.profile-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-top:20px}
+.profile-stat{background:var(--bg-card);padding:14px 8px;text-align:center}
+.profile-stat-val{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:var(--accent)}
+.profile-stat-label{font-size:11px;color:var(--text-muted);margin-top:2px}
+.settings-group{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px}
+.settings-item{display:flex;align-items:center;gap:14px;padding:16px 18px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.settings-item:last-child{border-bottom:none}
+.settings-item:active{background:var(--bg-card-alt)}
+.settings-item .icon-wrap{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.settings-item .settings-text{flex:1}
+.settings-item .settings-label{font-size:14px;font-weight:500}
+.settings-item .settings-sub{font-size:11px;color:var(--text-muted);margin-top:1px}
+.settings-item .arrow{color:var(--text-muted);font-size:14px}
+.settings-item .settings-right{display:flex;align-items:center;gap:8px}
+
+/* Toggle */
+.toggle{width:44px;height:26px;border-radius:13px;background:var(--text-muted);position:relative;cursor:pointer;transition:background .25s;flex-shrink:0}
+.toggle.on{background:var(--accent)}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .25s}
+.toggle.on::after{transform:translateX(18px)}
+
+/* ============ MODAL ============ */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:100;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.show{display:flex}
+.modal{width:100%;max-width:430px;background:var(--bg-primary);border-radius:24px 24px 0 0;padding:20px 24px;max-height:85vh;display:flex;flex-direction:column;animation:slideUp .3s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:40px;height:4px;border-radius:2px;background:var(--text-muted);margin:0 auto 16px}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:20px}
+.modal-body{flex:1;overflow-y:auto;padding-bottom:20px}
+.modal-body::-webkit-scrollbar{display:none}
+.modal-footer{display:flex;gap:12px;padding-bottom:max(20px,env(safe-area-inset-bottom))}
+.modal-footer .btn{flex:1}
+
+/* Toast */
+.toast{position:fixed;top:60px;left:50%;transform:translateX(-50%) translateY(-100px);background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 20px;font-size:14px;z-index:200;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);transition:transform .3s ease;max-width:340px}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast-icon{font-size:18px}
+
+/* Animations */
+@keyframes fadeInUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.animate-in{animation:fadeInUp .45s ease forwards}
+.delay-1{animation-delay:.08s;opacity:0}
+.delay-2{animation-delay:.16s;opacity:0}
+.delay-3{animation-delay:.24s;opacity:0}
+.delay-4{animation-delay:.32s;opacity:0}
+.delay-5{animation-delay:.40s;opacity:0}
+</style>
+</head>
+<body>
+<div id="app-root">
+
+<!-- ============ SPLASH ============ -->
+<div class="screen active" id="screen-splash">
+  <div class="splash-logo">
+    <svg viewBox="0 0 48 48" fill="none"><path d="M24 4L8 14v20l16 10 16-10V14L24 4z" fill="#0a0f1e" opacity=".2"/><path d="M24 8l-12 7.5v15L24 38l12-7.5v-15L24 8z" fill="#0a0f1e" opacity=".3"/><path d="M16 20h16M16 26h10M20 16v16" stroke="#0a0f1e" stroke-width="2.5" stroke-linecap="round"/></svg>
+  </div>
+  <div class="splash-title">研<span>途</span></div>
+  <div class="splash-sub">你的考研备考智能助手</div>
+  <button class="btn btn-primary" onclick="showScreen('screen-login')">开始备考之旅</button>
+</div>
+
+<!-- ============ LOGIN ============ -->
+<div class="screen" id="screen-login">
+  <div class="login-header">
+    <h1>欢迎回来</h1>
+    <p>登录以继续追踪你的备考进度</p>
+  </div>
+  <div class="login-form">
+    <div class="tab-switch">
+      <button class="tab-switch-btn active" onclick="switchAuthTab(this,'login-phone')">手机登录</button>
+      <button class="tab-switch-btn" onclick="switchAuthTab(this,'login-email')">邮箱登录</button>
+    </div>
+    <div id="login-phone">
+      <div class="input-group">
+        <label>手机号</label>
+        <input class="input" type="tel" placeholder="请输入手机号" maxlength="11">
+      </div>
+      <div class="input-group">
+        <label>验证码</label>
+        <div style="display:flex;gap:10px">
+          <input class="input" type="text" placeholder="请输入验证码" maxlength="6" style="flex:1">
+          <button class="btn btn-ghost btn-sm" style="white-space:nowrap;flex-shrink:0;border-color:var(--accent);color:var(--accent)" onclick="startCountdown(this)">获取验证码</button>
+        </div>
+      </div>
+    </div>
+    <div id="login-email" style="display:none">
+      <div class="input-group">
+        <label>邮箱</label>
+        <input class="input" type="email" placeholder="请输入邮箱地址">
+      </div>
+      <div class="input-group">
+        <label>密码</label>
+        <input class="input" type="password" placeholder="请输入密码">
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="showScreen('screen-reg1')">登录 / 注册</button>
+  </div>
+  <div class="login-footer">
+    <span style="color:var(--text-muted);font-size:13px">还没有账号？</span>
+    <a onclick="showScreen('screen-reg1')">立即注册</a>
+  </div>
+</div>
+
+<!-- ============ REGISTER STEP 1 ============ -->
+<div class="screen reg-screen" id="screen-reg1">
+  <div class="reg-header">
+    <div class="back-btn" onclick="showScreen('screen-login')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </div>
+    <h2>联系方式</h2>
+  </div>
+  <div class="reg-progress"><div class="bar filled"></div><div class="bar"></div><div class="bar"></div></div>
+  <div class="reg-body" style="padding-top:32px">
+    <p style="color:var(--text-sec);font-size:14px;margin-bottom:28px">请选择注册方式并完成验证</p>
+    <div class="tab-switch" style="margin-bottom:24px">
+      <button class="tab-switch-btn active" onclick="switchAuthTab(this,'reg-phone')">手机号</button>
+      <button class="tab-switch-btn" onclick="switchAuthTab(this,'reg-email')">邮箱</button>
+    </div>
+    <div id="reg-phone">
+      <div class="input-group">
+        <label>手机号</label>
+        <input class="input" type="tel" placeholder="请输入手机号" maxlength="11">
+      </div>
+      <div class="input-group">
+        <label>验证码</label>
+        <div style="display:flex;gap:10px">
+          <input class="input" type="text" placeholder="请输入验证码" maxlength="6" style="flex:1">
+          <button class="btn btn-ghost btn-sm" style="white-space:nowrap;flex-shrink:0;border-color:var(--accent);color:var(--accent)" onclick="startCountdown(this)">获取验证码</button>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>设置密码</label>
+        <input class="input" type="password" placeholder="请设置6-16位密码">
+      </div>
+    </div>
+    <div id="reg-email" style="display:none">
+      <div class="input-group">
+        <label>邮箱</label>
+        <input class="input" type="email" placeholder="请输入邮箱地址">
+      </div>
+      <div class="input-group">
+        <label>密码</label>
+        <input class="input" type="password" placeholder="请设置6-16位密码">
+      </div>
+      <div class="input-group">
+        <label>确认密码</label>
+        <input class="input" type="password" placeholder="请再次输入密码">
+      </div>
+    </div>
+  </div>
+  <div class="reg-footer">
+    <button class="btn btn-ghost" onclick="showScreen('screen-login')">返回</button>
+    <button class="btn btn-primary" onclick="showScreen('screen-reg2')">下一步</button>
+  </div>
+</div>
+
+<!-- ============ REGISTER STEP 2 ============ -->
+<div class="screen reg-screen" id="screen-reg2">
+  <div class="reg-header">
+    <div class="back-btn" onclick="showScreen('screen-reg1')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </div>
+    <h2>基本信息</h2>
+  </div>
+  <div class="reg-progress"><div class="bar filled"></div><div class="bar filled"></div><div class="bar"></div></div>
+  <div class="reg-body" style="padding-top:32px">
+    <p style="color:var(--text-sec);font-size:14px;margin-bottom:28px">告诉我们你的考研目标</p>
+    <div class="input-group">
+      <label>姓名</label>
+      <input class="input" type="text" placeholder="请输入你的姓名" id="reg-name">
+    </div>
+    <div class="input-group">
+      <label>目标院校</label>
+      <input class="input" type="text" placeholder="如：北京大学、清华大学" id="reg-school">
+    </div>
+    <div class="input-group">
+      <label>目标专业</label>
+      <input class="input" type="text" placeholder="如：计算机科学与技术" id="reg-major">
+    </div>
+    <div class="input-group">
+      <label>考试年份</label>
+      <select class="input" id="reg-year">
+        <option value="2026">2026年考研</option>
+        <option value="2027">2027年考研</option>
+        <option value="2028">2028年考研</option>
+      </select>
+    </div>
+  </div>
+  <div class="reg-footer">
+    <button class="btn btn-ghost" onclick="showScreen('screen-reg1')">上一步</button>
+    <button class="btn btn-primary" onclick="showScreen('screen-reg3')">下一步</button>
+  </div>
+</div>
+
+<!-- ============ REGISTER STEP 3 ============ -->
+<div class="screen reg-screen" id="screen-reg3">
+  <div class="reg-header">
+    <div class="back-btn" onclick="showScreen('screen-reg2')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </div>
+    <h2>备考科目</h2>
+  </div>
+  <div class="reg-progress"><div class="bar filled"></div><div class="bar filled"></div><div class="bar filled"></div></div>
+  <div class="reg-body" style="padding-top:24px">
+    <p style="color:var(--text-sec);font-size:14px;margin-bottom:20px">选择你需要备考的科目（可多选）</p>
+    <div id="reg-subjects-list" style="margin-bottom:20px">
+      <div class="subject-tag selected" onclick="toggleRegSubject(this)" data-name="政治" data-color="#f06565">
+        <span class="tag-dot" style="background:#f06565"></span>政治
+      </div>
+      <div class="subject-tag selected" onclick="toggleRegSubject(this)" data-name="英语" data-color="#38bdf8">
+        <span class="tag-dot" style="background:#38bdf8"></span>英语
+      </div>
+      <div class="subject-tag selected" onclick="toggleRegSubject(this)" data-name="数学" data-color="#2dd4a8">
+        <span class="tag-dot" style="background:#2dd4a8"></span>数学
+      </div>
+      <div class="subject-tag" onclick="toggleRegSubject(this)" data-name="专业课" data-color="#f0b429">
+        <span class="tag-dot" style="background:#f0b429"></span>专业课
+      </div>
+      <div class="subject-tag" onclick="toggleRegSubject(this)" data-name="专业基础" data-color="#7c6cf0">
+        <span class="tag-dot" style="background:#7c6cf0"></span>专业基础
+      </div>
+    </div>
+    <div class="input-group" style="margin-top:16px">
+      <label>自定义科目</label>
+      <div style="display:flex;gap:10px">
+        <input class="input" type="text" placeholder="输入科目名称" id="custom-subject-input" style="flex:1">
+        <button class="btn btn-ghost btn-sm" style="flex-shrink:0;border-color:var(--accent);color:var(--accent)" onclick="addCustomSubject()">添加</button>
+      </div>
+    </div>
+    <div style="background:var(--accent-glow);border:1px solid rgba(240,180,41,0.2);border-radius:var(--radius-sm);padding:14px 16px;margin-top:20px">
+      <div style="font-size:13px;color:var(--accent);font-weight:600;margin-bottom:4px">提示</div>
+      <div style="font-size:12px;color:var(--text-sec);line-height:1.6">选择科目后，系统会自动为你生成初始学习计划。你可以在设置中随时调整科目和计划。</div>
+    </div>
+  </div>
+  <div class="reg-footer">
+    <button class="btn btn-ghost" onclick="showScreen('screen-reg2')">上一步</button>
+    <button class="btn btn-primary" onclick="completeRegistration()">完成注册</button>
+  </div>
+</div>
+
+<!-- ============ MAIN APP ============ -->
+<div class="screen" id="screen-main">
+  <!-- Dashboard -->
+  <div class="tab-page active" id="page-dashboard">
+    <div class="app-header">
+      <div class="app-header-row">
+        <div>
+          <div class="app-greeting" id="greeting-text">上午好</div>
+          <div class="app-title">学习看板</div>
+        </div>
+        <div class="header-right">
+          <div class="avatar" id="user-avatar">张</div>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-y" id="dashboard-scroll">
+      <div class="stats-row animate-in delay-1">
+        <div class="stat-card">
+          <div class="stat-value amber" id="stat-today-hours">3.5</div>
+          <div class="stat-label">今日学习/h</div>
+          <div class="stat-sub">目标 6h</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value green" id="stat-days">47</div>
+          <div class="stat-label">累计天数</div>
+          <div class="stat-sub">连续 12 天</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value purple" id="stat-weekly">78%</div>
+          <div class="stat-label">本周完成率</div>
+          <div class="stat-sub">+5% 较上周</div>
+        </div>
+      </div>
+
+      <div class="chart-card animate-in delay-2">
+        <div class="chart-card-title">每日学习时长趋势</div>
+        <div class="chart-card-sub">近7天学习时长（小时）</div>
+        <canvas id="chart-line" class="chart-canvas" height="180"></canvas>
+      </div>
+
+      <div class="chart-card animate-in delay-3">
+        <div class="chart-card-title">科目时间分布</div>
+        <div class="chart-card-sub">本周各科目学习时长</div>
+        <canvas id="chart-bar" class="chart-canvas" height="180"></canvas>
+      </div>
+
+      <div class="chart-card animate-in delay-4">
+        <div class="chart-card-title">科目完成进度</div>
+        <div class="chart-card-sub">整体复习进度概览</div>
+        <canvas id="chart-ring" class="chart-canvas" height="200"></canvas>
+      </div>
+
+      <div class="section-title animate-in delay-5">
+        今日待完成
+        <span class="more" onclick="switchTab(2)">查看全部</span>
+      </div>
+      <div id="dashboard-plans" class="animate-in delay-5"></div>
+
+      <div class="section-title animate-in delay-5">
+        近期学习记录
+        <span class="more">更多</span>
+      </div>
+      <div class="card animate-in delay-5" id="dashboard-records"></div>
+      <div style="height:20px"></div>
+    </div>
+  </div>
+
+  <!-- Subjects -->
+  <div class="tab-page" id="page-subjects">
+    <div class="app-header">
+      <div class="app-header-row">
+        <div>
+          <div class="app-greeting">科目管理</div>
+          <div class="app-title">我的备考科目</div>
+        </div>
+        <button class="btn-icon" onclick="showAddSubjectModal()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="scroll-y" style="padding:0 20px 20px">
+      <div class="subjects-grid" id="subjects-grid"></div>
+    </div>
+  </div>
+
+  <!-- Plans -->
+  <div class="tab-page" id="page-plans">
+    <div class="app-header">
+      <div class="app-header-row">
+        <div>
+          <div class="app-greeting">计划管理</div>
+          <div class="app-title">学习计划</div>
+        </div>
+        <button class="btn-icon" onclick="showAddPlanModal()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="scroll-y" style="padding:0 20px 20px">
+      <div class="plans-date-strip" id="date-strip"></div>
+      <div id="plans-content"></div>
+    </div>
+  </div>
+
+  <!-- Profile -->
+  <div class="tab-page" id="page-profile">
+    <div class="app-header">
+      <div class="app-greeting">个人中心</div>
+      <div class="app-title">我的</div>
+    </div>
+    <div class="scroll-y" style="padding:0 20px 20px">
+      <div class="profile-header-card">
+        <div class="profile-avatar" id="profile-avatar">张</div>
+        <div class="profile-name" id="profile-name">张同学</div>
+        <div class="profile-school" id="profile-school">目标：北京大学 · 计算机科学</div>
+        <div class="profile-stats">
+          <div class="profile-stat">
+            <div class="profile-stat-val" id="profile-total-hours">156</div>
+            <div class="profile-stat-label">总学习/h</div>
+          </div>
+          <div class="profile-stat">
+            <div class="profile-stat-val" id="profile-total-days">47</div>
+            <div class="profile-stat-label">累计天数</div>
+          </div>
+          <div class="profile-stat">
+            <div class="profile-stat-val" id="profile-completion">68%</div>
+            <div class="profile-stat-label">总完成率</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-item">
+          <div class="icon-wrap" style="background:var(--accent-glow);color:var(--accent)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          </div>
+          <div class="settings-text">
+            <div class="settings-label">备考设置</div>
+            <div class="settings-sub">目标院校、专业、考试年份</div>
+          </div>
+          <span class="arrow">›</span>
+        </div>
+        <div class="settings-item">
+          <div class="icon-wrap" style="background:var(--accent2-glow);color:var(--accent2)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+          </div>
+          <div class="settings-text">
+            <div class="settings-label">学习目标</div>
+            <div class="settings-sub">每日学习时长、计划提醒</div>
+          </div>
+          <span class="arrow">›</span>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-item">
+          <div class="icon-wrap" style="background:var(--green-glow);color:var(--green)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.36 6.36l-.7-.7M6.34 6.34l-.7-.7m12.72 0l-.7.7M6.34 17.66l-.7.7"/><circle cx="12" cy="12" r="5"/></svg>
+          </div>
+          <div class="settings-text">
+            <div class="settings-label">深色模式</div>
+            <div class="settings-sub">已开启</div>
+          </div>
+          <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="settings-item">
+          <div class="icon-wrap" style="background:rgba(56,189,248,0.1);color:var(--blue)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+          </div>
+          <div class="settings-text">
+            <div class="settings-label">提醒通知</div>
+            <div class="settings-sub">开启学习计划提醒</div>
+          </div>
+          <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-item">
+          <div class="icon-wrap" style="background:rgba(240,101,101,0.1);color:var(--red)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          </div>
+          <div class="settings-text">
+            <div class="settings-label" style="color:var(--red)">退出登录</div>
+          </div>
+          <span class="arrow">›</span>
+        </div>
+      </div>
+      <div style="text-align:center;padding:20px 0;color:var(--text-muted);font-size:12px">研途 v1.0.0 · 考研备考助手</div>
+    </div>
+  </div>
+
+  <!-- Tab Bar -->
+  <nav class="tab-bar">
+    <div class="tab-bar-item active" onclick="switchTab(0)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span>看板</span>
+    </div>
+    <div class="tab-bar-item" onclick="switchTab(1)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+      <span>科目</span>
+    </div>
+    <div class="tab-bar-item" onclick="switchTab(2)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <span>计划</span>
+    </div>
+    <div class="tab-bar-item" onclick="switchTab(3)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>我的</span>
+    </div>
+  </nav>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"><span class="toast-icon"></span><span id="toast-text"></span></div>
+
+<script>
+// ==================== APP STATE ====================
+const state = {
+  user: { name: '张同学', school: '北京大学', major: '计算机科学与技术', year: '2026' },
+  subjects: [
+    { id: 1, name: '政治', color: '#f06565', targetScore: 75, dailyHours: 1.5, progress: 45, totalHours: 38 },
+    { id: 2, name: '英语', color: '#38bdf8', targetScore: 70, dailyHours: 2, progress: 52, totalHours: 52 },
+    { id: 3, name: '数学', color: '#2dd4a8', targetScore: 130, dailyHours: 3, progress: 38, totalHours: 66 },
+  ],
+  plans: [],
+  studyRecords: [
+    { subject: '数学', duration: '1.5h', time: '09:00-10:30', date: 'today' },
+    { subject: '英语', duration: '1.0h', time: '14:00-15:00', date: 'today' },
+    { subject: '政治', duration: '1.0h', time: '19:00-20:00', date: 'today' },
+    { subject: '英语', duration: '2.0h', time: '08:00-10:00', date: 'yesterday' },
+    { subject: '数学', duration: '2.5h', time: '14:00-16:30', date: 'yesterday' },
+  ],
+  todayHours: 3.5,
+  totalDays: 47,
+  weeklyCompletion: 78,
+  dailyData: [4.5, 5.2, 3.8, 6.0, 4.2, 5.5, 3.5],
+  selectedDateIndex: 3, // today in date strip
+};
+
+// Generate initial plans
+function generatePlans() {
+  const days = ['周日','周一','周二','周三','周四','周五','周六'];
+  const now = new Date();
+  const plans = [];
+  state.subjects.forEach(sub => {
+    plans.push(
+      { id: plans.length+1, subjectId: sub.id, subject: sub.name, color: sub.color, name: `${sub.name}基础复习`, time: '09:00', duration: `${sub.dailyHours}h`, done: Math.random()>0.5, date: 3 },
+      { id: plans.length+2, subjectId: sub.id, subject: sub.name, color: sub.color, name: `${sub.name}真题练习`, time: '14:00', duration: '1h', done: Math.random()>0.7, date: 3 }
+    );
+  });
+  state.plans = plans;
+}
+generatePlans();
+
+// ==================== NAVIGATION ====================
+function showScreen(id) {
+  const current = document.querySelector('.screen.active');
+  const next = document.getElementById(id);
+  if (current === next) return;
+  current.classList.remove('active');
+  current.classList.add('slide-out');
+  next.classList.add('active','slide-in');
+  setTimeout(() => {
+    next.classList.remove('slide-in');
+    current.classList.remove('slide-out');
+    current.style.display = 'none';
+  }, 50);
+  setTimeout(() => {
+    current.style.display = '';
+  }, 450);
+  if (id === 'screen-main') initMainApp();
+}
+
+function switchTab(idx) {
+  const pages = document.querySelectorAll('#screen-main .tab-page');
+  const tabs = document.querySelectorAll('.tab-bar-item');
+  pages.forEach((p,i) => p.classList.toggle('active', i === idx));
+  tabs.forEach((t,i) => t.classList.toggle('active', i === idx));
+  if (idx === 0) { setTimeout(drawAllCharts, 100); }
+  if (idx === 1) renderSubjects();
+  if (idx === 2) renderPlans();
+}
+
+function switchAuthTab(btn, targetId) {
+  btn.parentElement.querySelectorAll('.tab-switch-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const parent = btn.closest('.reg-body,.login-form');
+  if (parent) {
+    parent.querySelectorAll('[id^="login-"],[id^="reg-"]').forEach(el => {
+      if (!el.classList.contains('tab-switch') && !el.classList.contains('input-group'))
+        el.style.display = el.id === targetId ? 'block' : 'none';
+    });
+  }
+}
+
+// ==================== REGISTRATION ====================
+function toggleRegSubject(el) {
+  el.classList.toggle('selected');
+}
+
+function addCustomSubject() {
+  const input = document.getElementById('custom-subject-input');
+  if (!input.value.trim()) return;
+  const colors = ['#fb923c','#a78bfa','#f472b6','#34d399','#60a5fa'];
+  const color = colors[Math.floor(Math.random()*colors.length)];
+  const tag = document.createElement('div');
+  tag.className = 'subject-tag selected';
+  tag.setAttribute('onclick','toggleRegSubject(this)');
+  tag.dataset.name = input.value.trim();
+  tag.dataset.color = color;
+  tag.innerHTML = `<span class="tag-dot" style="background:${color}"></span>${input.value.trim()}`;
+  document.getElementById('reg-subjects-list').appendChild(tag);
+  input.value = '';
+  showToast('已添加', '✓');
+}
+
+function completeRegistration() {
+  const selected = document.querySelectorAll('#reg-subjects-list .subject-tag.selected');
+  if (selected.length === 0) {
+    showToast('请至少选择一个科目', '⚠');
+    return;
+  }
+  // Update subjects based on selection
+  const subjects = [];
+  const defaultSubjects = {
+    '政治': { color: '#f06565', targetScore: 75, dailyHours: 1.5 },
+    '英语': { color: '#38bdf8', targetScore: 70, dailyHours: 2 },
+    '数学': { color: '#2dd4a8', targetScore: 130, dailyHours: 3 },
+    '专业课': { color: '#f0b429', targetScore: 120, dailyHours: 2.5 },
+    '专业基础': { color: '#7c6cf0', targetScore: 120, dailyHours: 2 },
+  };
+  selected.forEach((tag, i) => {
+    const name = tag.dataset.name;
+    const def = defaultSubjects[name] || { color: tag.dataset.color || '#60a5fa', targetScore: 100, dailyHours: 1.5 };
+    subjects.push({ id: i+1, name, color: def.color, targetScore: def.targetScore, dailyHours: def.dailyHours, progress: Math.floor(Math.random()*30+20), totalHours: Math.floor(Math.random()*40+10) });
+  });
+  state.subjects = subjects;
+  const regName = document.getElementById('reg-name');
+  if (regName && regName.value) state.user.name = regName.value;
+  const regSchool = document.getElementById('reg-school');
+  if (regSchool && regSchool.value) state.user.school = regSchool.value;
+  const regMajor = document.getElementById('reg-major');
+  if (regMajor && regMajor.value) state.user.major = regMajor.value;
+  generatePlans();
+  showToast('注册成功，开始备考之旅！', '🎉');
+  setTimeout(() => showScreen('screen-main'), 600);
+}
+
+// ==================== MAIN APP INIT ====================
+function initMainApp() {
+  updateGreeting();
+  renderDashboardPlans();
+  renderDashboardRecords();
+  renderSubjects();
+  renderDateStrip();
+  renderPlans();
+  updateProfileInfo();
+  setTimeout(drawAllCharts, 200);
+}
+
+function updateGreeting() {
+  const h = new Date().getHours();
+  let g = '晚上好';
+  if (h < 6) g = '凌晨了，注意休息';
+  else if (h < 12) g = '早上好';
+  else if (h < 14) g = '中午好';
+  else if (h < 18) g = '下午好';
+  document.getElementById('greeting-text').textContent = g + '，' + state.user.name;
+  const now = new Date();
+  document.querySelector('#page-dashboard .app-date')?.remove();
+  const dateDiv = document.createElement('div');
+  dateDiv.className = 'app-date';
+  dateDiv.style.cssText = 'font-size:12px;color:var(--text-muted);margin-top:2px';
+  const days = ['日','一','二','三','四','五','六'];
+  dateDiv.textContent = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 星期${days[now.getDay()]}`;
+  document.querySelector('#page-dashboard .app-header-row > div:first-child').appendChild(dateDiv);
+  document.getElementById('user-avatar').textContent = state.user.name.charAt(0);
+}
+
+// ==================== DASHBOARD ====================
+function renderDashboardPlans() {
+  const container = document.getElementById('dashboard-plans');
+  const todayPlans = state.plans.filter(p => p.date === 3);
+  if (todayPlans.length === 0) {
+    container.innerHTML = '<div class="card" style="text-align:center;color:var(--text-muted);padding:32px">暂无待完成计划</div>';
+    return;
+  }
+  container.innerHTML = todayPlans.slice(0,3).map(p => `
+    <div class="plan-item" onclick="togglePlan(${p.id})">
+      <div class="plan-check ${p.done?'checked':''}">
+        ${p.done?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>':''}
+      </div>
+      <div class="plan-info">
+        <div class="plan-name ${p.done?'done':''}">${p.name}</div>
+        <div class="plan-subject">${p.time} · ${p.duration}</div>
+      </div>
+      <div class="chip" style="background:${p.color}18;color:${p.color}"><span class="chip-dot" style="background:${p.color}"></span>${p.subject}</div>
+    </div>
+  `).join('');
+}
+
+function renderDashboardRecords() {
+  const container = document.getElementById('dashboard-records');
+  container.innerHTML = state.studyRecords.slice(0,4).map(r => {
+    const sub = state.subjects.find(s => s.name === r.subject);
+    const color = sub ? sub.color : '#888';
+    return `
+    <div class="record-item">
+      <div class="record-color" style="background:${color}"></div>
+      <div class="record-info">
+        <div class="record-name">${r.subject}</div>
+        <div class="record-meta">${r.time} · ${r.date === 'today' ? '今天' : '昨天'}</div>
+      </div>
+      <div class="record-duration">${r.duration}</div>
+    </div>`;
+  }).join('');
+}
+
+function togglePlan(id) {
+  const plan = state.plans.find(p => p.id === id);
+  if (plan) {
+    plan.done = !plan.done;
+    renderDashboardPlans();
+    renderPlans();
+    if (plan.done) showToast('计划已完成', '✓');
+  }
+}
+
+// ==================== CHARTS ====================
+function drawAllCharts() {
+  drawLineChart();
+  drawBarChart();
+  drawRingChart();
+}
+
+function getCtx(id) {
+  const canvas = document.getElementById(id);
+  if (!canvas) return null;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return { ctx, w: rect.width, h: rect.height };
+}
+
+function drawLineChart() {
+  const r = getCtx('chart-line');
+  if (!r) return;
+  const { ctx, w, h } = r;
+  const data = state.dailyData;
+  const labels = ['周一','周二','周三','周四','周五','周六','今天'];
+  const padL = 36, padR = 16, padT = 16, padB = 28;
+  const cw = w - padL - padR, ch = h - padT - padB;
+  const maxVal = Math.ceil(Math.max(...data) / 2) * 2;
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + (ch / 4) * i;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w - padR, y); ctx.stroke();
+    ctx.fillStyle = '#4a5578';
+    ctx.font = '10px JetBrains Mono';
+    ctx.textAlign = 'right';
+    ctx.fillText((maxVal - (maxVal/4)*i).toFixed(0), padL - 8, y + 4);
+  }
+
+  // Labels
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#4a5578';
+  ctx.font = '10px Noto Sans SC';
+  data.forEach((_, i) => {
+    ctx.fillText(labels[i], padL + (cw / (data.length-1)) * i, h - 8);
+  });
+
+  // Area gradient
+  const grad = ctx.createLinearGradient(0, padT, 0, padT + ch);
+  grad.addColorStop(0, 'rgba(240,180,41,0.2)');
+  grad.addColorStop(1, 'rgba(240,180,41,0)');
+
+  const points = data.map((v, i) => ({
+    x: padL + (cw / (data.length-1)) * i,
+    y: padT + ch - (v / maxVal) * ch
+  }));
+
+  // Area
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, padT + ch);
+  points.forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.lineTo(points[points.length-1].x, padT + ch);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.strokeStyle = '#f0b429';
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+
+  // Points
+  points.forEach((p, i) => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#f0b429';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+    ctx.fillStyle = '#0a0f1e';
+    ctx.fill();
+  });
+}
+
+function drawBarChart() {
+  const r = getCtx('chart-bar');
+  if (!r) return;
+  const { ctx, w, h } = r;
+  const subjects = state.subjects;
+  const data = subjects.map(s => s.dailyHours * 7);
+  const padL = 36, padR = 16, padT = 16, padB = 36;
+  const cw = w - padL - padR, ch = h - padT - padB;
+  const maxVal = Math.ceil(Math.max(...data) / 5) * 5 || 10;
+
+  // Grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + (ch / 4) * i;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w - padR, y); ctx.stroke();
+    ctx.fillStyle = '#4a5578';
+    ctx.font = '10px JetBrains Mono';
+    ctx.textAlign = 'right';
+    ctx.fillText((maxVal - (maxVal/4)*i).toFixed(0), padL - 8, y + 4);
+  }
+
+  const barW = Math.min(36, (cw / data.length) * 0.5);
+  const gap = cw / data.length;
+
+  data.forEach((v, i) => {
+    const x = padL + gap * i + gap / 2 - barW / 2;
+    const barH = (v / maxVal) * ch;
+    const y = padT + ch - barH;
+    const color = subjects[i].color;
+
+    // Bar with rounded top
+    const radius = 6;
+    ctx.beginPath();
+    ctx.moveTo(x, padT + ch);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.lineTo(x + barW - radius, y);
+    ctx.quadraticCurveTo(x + barW, y, x + barW, y + radius);
+    ctx.lineTo(x + barW, padT + ch);
+    ctx.closePath();
+
+    const g = ctx.createLinearGradient(0, y, 0, padT + ch);
+    g.addColorStop(0, color);
+    g.addColorStop(1, color + '40');
+    ctx.fillStyle = g;
+    ctx.fill();
+
+    // Value
+    ctx.fillStyle = color;
+    ctx.font = '600 11px JetBrains Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText(v.toFixed(0) + 'h', x + barW / 2, y - 8);
+
+    // Label
+    ctx.fillStyle = '#8892b0';
+    ctx.font = '11px Noto Sans SC';
+    ctx.fillText(subjects[i].name, x + barW / 2, h - 10);
+  });
+}
+
+function drawRingChart() {
+  const r = getCtx('chart-ring');
+  if (!r) return;
+  const { ctx, w, h } = r;
+  const subjects = state.subjects;
+  const cx = w / 2;
+  const cy = h / 2;
+  const baseR = Math.min(cx, cy) - 20;
+
+  subjects.forEach((sub, i) => {
+    const radius = baseR - i * 26;
+    const progress = sub.progress / 100;
+
+    // Background circle
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 18;
+    ctx.stroke();
+
+    // Progress arc
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
+    ctx.strokeStyle = sub.color;
+    ctx.lineWidth = 18;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    ctx.lineCap = 'butt';
+  });
+
+  // Center text
+  const avgProgress = Math.round(subjects.reduce((a, s) => a + s.progress, 0) / subjects.length);
+  ctx.fillStyle = '#eef0f6';
+  ctx.font = '700 28px JetBrains Mono';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(avgProgress + '%', cx, cy - 6);
+  ctx.fillStyle = '#8892b0';
+  ctx.font = '12px Noto Sans SC';
+  ctx.fillText('总进度', cx, cy + 16);
+
+  // Legend
+  const legendY = h - 12;
+  const totalW = subjects.length * 80;
+  const startX = cx - totalW / 2;
+  subjects.forEach((sub, i) => {
+    const x = startX + i * 80 + 10;
+    ctx.beginPath();
+    ctx.arc(x, legendY, 4, 0, Math.PI * 2);
+    ctx.fillStyle = sub.color;
+    ctx.fill();
+    ctx.fillStyle = '#8892b0';
+    ctx.font = '11px Noto Sans SC';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${sub.name} ${sub.progress}%`, x + 8, legendY);
+  });
+}
+
+// ==================== SUBJECTS PAGE ====================
+function renderSubjects() {
+  const grid = document.getElementById('subjects-grid');
+  if (!grid) return;
+  grid.innerHTML = state.subjects.map(s => `
+    <div class="subject-card" style="--sub-color:${s.color}">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${s.color}"></div>
+      <div class="subject-card-header">
+        <div class="subject-card-name"><span class="dot" style="background:${s.color}"></span>${s.name}</div>
+        <div class="subject-card-actions">
+          <button onclick="editSubject(${s.id})" title="编辑">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button onclick="deleteSubject(${s.id})" title="删除">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="meta-row">
+        <div class="meta-item">目标 <strong>${s.targetScore}</strong> 分</div>
+        <div class="meta-item">每日 <strong>${s.dailyHours}</strong> h</div>
+        <div class="meta-item">已学 <strong>${s.totalHours}</strong> h</div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${s.progress}%;background:${s.color}"></div></div>
+      <div class="progress-label"><span>复习进度</span><span style="color:${s.color};font-family:'JetBrains Mono',monospace">${s.progress}%</span></div>
+    </div>
+  `).join('');
+}
+
+function editSubject(id) {
+  const sub = state.subjects.find(s => s.id === id);
+  if (!sub) return;
+  showModal('编辑科目', `
+    <div class="input-group">
+      <label>科目名称</label>
+      <input class="input" id="edit-sub-name" value="${sub.name}">
+    </div>
+    <div class="input-group">
+      <label>目标分值</label>
+      <input class="input" type="number" id="edit-sub-score" value="${sub.targetScore}">
+    </div>
+    <div class="input-group">
+      <label>每日学习时长 (h)</label>
+      <input class="input" type="number" step="0.5" id="edit-sub-hours" value="${sub.dailyHours}">
+    </div>
+  `, `
+    <button class="btn btn-ghost" onclick="hideModal()">取消</button>
+    <button class="btn btn-primary" onclick="saveSubject(${id})">保存</button>
+  `);
+}
+
+function saveSubject(id) {
+  const sub = state.subjects.find(s => s.id === id);
+  if (!sub) return;
+  sub.name = document.getElementById('edit-sub-name').value;
+  sub.targetScore = parseInt(document.getElementById('edit-sub-score').value);
+  sub.dailyHours = parseFloat(document.getElementById('edit-sub-hours').value);
+  hideModal();
+  renderSubjects();
+  showToast('科目已更新', '✓');
+}
+
+function deleteSubject(id) {
+  showModal('确认删除', '<p style="color:var(--text-sec);font-size:14px">确定要删除这个科目吗？相关计划也将被删除。</p>', `
+    <button class="btn btn-ghost" onclick="hideModal()">取消</button>
+    <button class="btn btn-primary" style="background:var(--red);box-shadow:0 4px 16px rgba(240,101,101,0.3)" onclick="confirmDeleteSubject(${id})">删除</button>
+  `);
+}
+
+function confirmDeleteSubject(id) {
+  state.subjects = state.subjects.filter(s => s.id !== id);
+  state.plans = state.plans.filter(p => p.subjectId !== id);
+  hideModal();
+  renderSubjects();
+  showToast('科目已删除', '✓');
+}
+
+function showAddSubjectModal() {
+  const colors = ['#f06565','#38bdf8','#2dd4a8','#f0b429','#7c6cf0','#fb923c','#a78bfa','#f472b6'];
+  showModal('添加科目', `
+    <div class="input-group">
+      <label>科目名称</label>
+      <input class="input" id="add-sub-name" placeholder="输入科目名称">
+    </div>
+    <div class="input-group">
+      <label>目标分值</label>
+      <input class="input" type="number" id="add-sub-score" placeholder="如：100">
+    </div>
+    <div class="input-group">
+      <label>每日学习时长 (h)</label>
+      <input class="input" type="number" step="0.5" id="add-sub-hours" placeholder="如：1.5">
+    </div>
+    <div class="input-group">
+      <label>颜色标识</label>
+      <div style="display:flex;gap:10px;flex-wrap:wrap" id="color-picker">
+        ${colors.map((c,i) => `<div onclick="pickColor(this)" data-color="${c}" style="width:32px;height:32px;border-radius:10px;background:${c};cursor:pointer;border:3px solid ${i===0?'#fff':'transparent'};transition:border .2s"></div>`).join('')}
+      </div>
+    </div>
+  `, `
+    <button class="btn btn-ghost" onclick="hideModal()">取消</button>
+    <button class="btn btn-primary" onclick="addNewSubject()">添加</button>
+  `);
+}
+
+function pickColor(el) {
+  el.parentElement.querySelectorAll('div').forEach(d => d.style.borderColor = 'transparent');
+  el.style.borderColor = '#fff';
+}
+
+function addNewSubject() {
+  const name = document.getElementById('add-sub-name').value.trim();
+  const score = parseInt(document.getElementById('add-sub-score').value) || 100;
+  const hours = parseFloat(document.getElementById('add-sub-hours').value) || 1.5;
+  const colorEl = document.querySelector('#color-picker div[style*="border-color: #fff"],#color-picker div[style*="border-color:#fff"]');
+  const color = colorEl ? colorEl.dataset.color : '#60a5fa';
+  if (!name) { showToast('请输入科目名称', '⚠'); return; }
+  const id = state.subjects.length ? Math.max(...state.subjects.map(s => s.id)) + 1 : 1;
+  state.subjects.push({ id, name, color, targetScore: score, dailyHours: hours, progress: 0, totalHours: 0 });
+  hideModal();
+  renderSubjects();
+  showToast('科目已添加', '✓');
+}
+
+// ==================== PLANS PAGE ====================
+function renderDateStrip() {
+  const strip = document.getElementById('date-strip');
+  if (!strip) return;
+  const days = ['日','一','二','三','四','五','六'];
+  const now = new Date();
+  let html = '';
+  for (let i = -3; i <= 3; i++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() + i);
+    const isToday = i === 0;
+    const isActive = i === state.selectedDateIndex - 3;
+    html += `<div class="date-chip ${isToday?'today':''} ${isActive?'active':''}" onclick="selectDate(${i+3})">
+      <div class="day-name">${isToday?'今天':'周'+days[d.getDay()]}</div>
+      <div class="day-num">${d.getDate()}</div>
+    </div>`;
+  }
+  strip.innerHTML = html;
+}
+
+function selectDate(idx) {
+  state.selectedDateIndex = idx;
+  renderDateStrip();
+  renderPlans();
+}
+
+function renderPlans() {
+  const container = document.getElementById('plans-content');
+  if (!container) return;
+  const dayPlans = state.plans.filter(p => p.date === state.selectedDateIndex);
+  const pending = dayPlans.filter(p => !p.done);
+  const done = dayPlans.filter(p => p.done);
+  const completionRate = dayPlans.length ? Math.round(done.length / dayPlans.length * 100) : 0;
+
+  let html = '';
+  if (dayPlans.length > 0) {
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:13px;color:var(--text-sec)">完成进度</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--accent)">${completionRate}%</div>
+    </div>
+    <div class="progress-bar" style="height:8px;margin-bottom:20px;border-radius:4px">
+      <div class="progress-fill" style="width:${completionRate}%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:4px"></div>
+    </div>`;
+  }
+
+  if (pending.length > 0) {
+    html += `<div class="plan-section">
+      <div class="plan-section-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        待完成 <span class="count">${pending.length}</span>
+      </div>
+      ${pending.map(p => renderPlanItem(p)).join('')}
+    </div>`;
+  }
+
+  if (done.length > 0) {
+    html += `<div class="plan-section">
+      <div class="plan-section-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+        已完成 <span class="count">${done.length}</span>
+      </div>
+      ${done.map(p => renderPlanItem(p)).join('')}
+    </div>`;
+  }
+
+  if (dayPlans.length === 0) {
+    html += '<div style="text-align:center;padding:48px 0;color:var(--text-muted)"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin:0 auto 12px;display:block;opacity:0.3"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>这一天还没有学习计划<br><span style="font-size:13px;margin-top:8px;display:inline-block">点击下方按钮添加</span></div>';
+  }
+
+  html += `<div class="add-plan-btn" onclick="showAddPlanModal()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    添加学习计划
+  </div>`;
+
+  container.innerHTML = html;
+}
+
+function renderPlanItem(p) {
+  return `<div class="plan-item" onclick="togglePlan(${p.id})">
+    <div class="plan-check ${p.done?'checked':''}">
+      ${p.done?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>':''}
+    </div>
+    <div class="plan-info">
+      <div class="plan-name ${p.done?'done':''}">${p.name}</div>
+      <div class="plan-subject">${p.time} · ${p.duration}</div>
+    </div>
+    <div class="chip" style="background:${p.color}18;color:${p.color}"><span class="chip-dot" style="background:${p.color}"></span>${p.subject}</div>
+  </div>`;
+}
+
+function showAddPlanModal() {
+  const subjectOptions = state.subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+  showModal('添加学习计划', `
+    <div class="input-group">
+      <label>计划内容</label>
+      <input class="input" id="add-plan-name" placeholder="如：复习高数第一章">
+    </div>
+    <div class="input-group">
+      <label>科目</label>
+      <select class="input" id="add-plan-subject">${subjectOptions}</select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="input-group">
+        <label>开始时间</label>
+        <input class="input" type="time" id="add-plan-time" value="09:00">
+      </div>
+      <div class="input-group">
+        <label>时长</label>
+        <input class="input" id="add-plan-duration" placeholder="如：1.5h" value="1h">
+      </div>
+    </div>
+    <div class="input-group">
+      <label>提醒时间</label>
+      <select class="input" id="add-plan-reminder">
+        <option value="0">不提醒</option>
+        <option value="5">5分钟前</option>
+        <option value="15" selected>15分钟前</option>
+        <option value="30">30分钟前</option>
+        <option value="60">1小时前</option>
+      </select>
+    </div>
+  `, `
+    <button class="btn btn-ghost" onclick="hideModal()">取消</button>
+    <button class="btn btn-primary" onclick="addNewPlan()">添加</button>
+  `);
+}
+
+function addNewPlan() {
+  const name = document.getElementById('add-plan-name').value.trim();
+  const subjectId = parseInt(document.getElementById('add-plan-subject').value);
+  const time = document.getElementById('add-plan-time').value;
+  const duration = document.getElementById('add-plan-duration').value;
+  if (!name) { showToast('请输入计划内容', '⚠'); return; }
+  const sub = state.subjects.find(s => s.id === subjectId);
+  const id = state.plans.length ? Math.max(...state.plans.map(p => p.id)) + 1 : 1;
+  state.plans.push({ id, subjectId, subject: sub.name, color: sub.color, name, time, duration, done: false, date: state.selectedDateIndex });
+  hideModal();
+  renderPlans();
+  renderDashboardPlans();
+  showToast('计划已添加', '✓');
+}
+
+// ==================== PROFILE ====================
+function updateProfileInfo() {
+  document.getElementById('profile-avatar').textContent = state.user.name.charAt(0);
+  document.getElementById('profile-name').textContent = state.user.name;
+  document.getElementById('profile-school').textContent = `目标：${state.user.school} · ${state.user.major}`;
+  const totalHours = state.subjects.reduce((a, s) => a + s.totalHours, 0);
+  document.getElementById('profile-total-hours').textContent = totalHours;
+}
+
+// ==================== MODAL & TOAST ====================
+function showModal(title, body, footer) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = body;
+  document.getElementById('modal-footer').innerHTML = footer;
+  document.getElementById('modal-overlay').classList.add('show');
+}
+
+function hideModal() {
+  document.getElementById('modal-overlay').classList.remove('show');
+}
+
+function closeModal(e) {
+  if (e.target === e.currentTarget) hideModal();
+}
+
+function showToast(text, icon) {
+  const toast = document.getElementById('toast');
+  document.getElementById('toast-text').textContent = text;
+  toast.querySelector('.toast-icon').textContent = icon || '';
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+function startCountdown(btn) {
+  if (btn.disabled) return;
+  let sec = 60;
+  btn.disabled = true;
+  btn.textContent = `${sec}s`;
+  btn.style.opacity = '0.5';
+  const timer = setInterval(() => {
+    sec--;
+    btn.textContent = `${sec}s`;
+    if (sec <= 0) {
+      clearInterval(timer);
+      btn.disabled = false;
+      btn.textContent = '获取验证码';
+      btn.style.opacity = '1';
+    }
+  }, 1000);
+  showToast('验证码已发送', '✓');
+}
+
+// ==================== RESIZE HANDLER ====================
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (document.getElementById('screen-main').classList.contains('active')) {
+      drawAllCharts();
+    }
+  }, 200);
+});
+</script>
+</body>
+</html>
