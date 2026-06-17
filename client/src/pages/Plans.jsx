@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import api from '../api.js';
-import { Plus, X, Check, Play, Pause, RotateCcw, Square, Repeat } from 'lucide-react';
+import { Plus, X, Check, Play, Pause, RotateCcw, Square, Repeat, Pencil, Trash2 } from 'lucide-react';
 
 function formatDate(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -30,6 +30,8 @@ export default function Plans() {
     name: '', subjectId: '', duration: '1h',
     recurrence: 'daily', repeatStart: formatDate(new Date()), repeatEnd: formatDate(new Date(Date.now() + 30 * 86400000)),
   });
+  const [editPlan, setEditPlan] = useState(null);
+  const [editForm, setEditForm] = useState({ name: '', subjectId: '', duration: '' });
 
   const dateStr = formatDate(selectedDate);
 
@@ -112,6 +114,28 @@ export default function Plans() {
     load();
   };
 
+  const openEdit = (plan) => {
+    setEditPlan(plan);
+    setEditForm({ name: plan.name, subjectId: plan.subject_id || '', duration: plan.duration });
+  };
+
+  const saveEdit = async () => {
+    if (!editForm.name.trim() || !editPlan) return;
+    await api.put(`/plans/${editPlan.id}`, {
+      name: editForm.name,
+      subjectId: editForm.subjectId || null,
+      duration: editForm.duration,
+    });
+    setEditPlan(null);
+    load();
+  };
+
+  const deletePlan = async (plan) => {
+    if (!confirm(`确定删除计划「${plan.name}」？`)) return;
+    await api.delete(`/plans/${plan.id}`);
+    load();
+  };
+
   const weekDates = [];
   for (let i = -3; i <= 3; i++) {
     const d = new Date();
@@ -179,6 +203,8 @@ export default function Plans() {
                 onPause={pauseTimer}
                 onReset={() => resetTimer(p)}
                 onFinish={() => finishTimer(p)}
+                onEdit={() => openEdit(p)}
+                onDelete={() => deletePlan(p)}
               />
             ))}
           </>
@@ -293,11 +319,46 @@ export default function Plans() {
           </div>
         </div>
       )}
+
+      {/* Edit plan modal */}
+      {editPlan && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center" onClick={() => setEditPlan(null)}>
+          <div className="bg-surface-1 rounded-t-3xl w-full max-w-[430px] p-6 pb-10 animate-slide-up" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold">编辑计划</h2>
+              <button onClick={() => setEditPlan(null)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-gray-400 mb-1.5 block">计划内容</label>
+                <input className="input-field" value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1.5 block">所属科目</label>
+                <select className="input-field" value={editForm.subjectId}
+                  onChange={(e) => setEditForm({ ...editForm, subjectId: e.target.value })}>
+                  <option value="">无</option>
+                  {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1.5 block">计划学时</label>
+                <input className="input-field" value={editForm.duration}
+                  onChange={(e) => setEditForm({ ...editForm, duration: e.target.value })} />
+              </div>
+            </div>
+            <button className="btn-primary mt-6" onClick={saveEdit}>保存修改</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function PlanCard({ plan, isActive, elapsed, onStart, onPause, onReset, onFinish }) {
+function PlanCard({ plan, isActive, elapsed, onStart, onPause, onReset, onFinish, onEdit, onDelete }) {
   const displayTime = isActive ? elapsed : (plan.elapsed_seconds || 0);
   const isRunning = isActive;
 
@@ -321,6 +382,18 @@ function PlanCard({ plan, isActive, elapsed, onStart, onPause, onReset, onFinish
         )}
         {plan.recurrence !== 'none' && (
           <Repeat size={12} className="text-gray-600 flex-shrink-0" />
+        )}
+        {!isRunning && !plan.done && (
+          <div className="flex gap-1 flex-shrink-0">
+            <button onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-gray-500 hover:text-brand-400 transition-colors">
+              <Pencil size={12} />
+            </button>
+            <button onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-gray-500 hover:text-red-400 transition-colors">
+              <Trash2 size={12} />
+            </button>
+          </div>
         )}
       </div>
 
