@@ -1,26 +1,48 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { GraduationCap, Eye, EyeOff, ArrowLeft, Plus, X } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
 
 const STEPS = ['联系方式', '基本信息', '备考科目'];
 
-const PRESET_SUBJECTS = [
-  { name: '政治', color: '#EF4444', targetScore: 75, dailyHours: 1.5 },
-  { name: '英语一', color: '#3B82F6', targetScore: 70, dailyHours: 2 },
-  { name: '英语二', color: '#06B6D4', targetScore: 70, dailyHours: 2 },
-  { name: '数学一', color: '#22C55E', targetScore: 120, dailyHours: 3 },
-  { name: '数学二', color: '#10B981', targetScore: 120, dailyHours: 2.5 },
-  { name: '数学三', color: '#34D399', targetScore: 120, dailyHours: 2.5 },
-  { name: '计算机学科专业基础', color: '#8B5CF6', targetScore: 120, dailyHours: 2.5 },
-  { name: '计算机学科专业综合', color: '#A78BFA', targetScore: 120, dailyHours: 2.5 },
-  { name: '心理学专业综合', color: '#F472B6', targetScore: 120, dailyHours: 2 },
-  { name: '法律硕士专业基础', color: '#F97316', targetScore: 120, dailyHours: 2 },
-  { name: '教育学专业基础', color: '#EAB308', targetScore: 120, dailyHours: 2 },
-  { name: '经济学综合', color: '#14B8A6', targetScore: 120, dailyHours: 2 },
+const SUBJECT_CATEGORIES = [
+  {
+    name: '公共课',
+    subjects: [
+      { name: '政治', color: '#EF4444', targetScore: 75, dailyHours: 1.5 },
+    ],
+  },
+  {
+    name: '英语',
+    subjects: [
+      { name: '英语一', color: '#3B82F6', targetScore: 70, dailyHours: 2 },
+      { name: '英语二', color: '#06B6D4', targetScore: 70, dailyHours: 2 },
+    ],
+  },
+  {
+    name: '数学',
+    subjects: [
+      { name: '数学一', color: '#22C55E', targetScore: 120, dailyHours: 3 },
+      { name: '数学二', color: '#10B981', targetScore: 120, dailyHours: 2.5 },
+      { name: '数学三', color: '#34D399', targetScore: 120, dailyHours: 2.5 },
+    ],
+  },
+  {
+    name: '专业课（常见）',
+    subjects: [
+      { name: '计算机学科专业基础（408）', color: '#8B5CF6', targetScore: 120, dailyHours: 2.5 },
+      { name: '心理学专业综合（347）', color: '#F472B6', targetScore: 120, dailyHours: 2 },
+      { name: '法律硕士专业基础（非法学）', color: '#F97316', targetScore: 120, dailyHours: 2 },
+      { name: '教育学专业基础（311）', color: '#EAB308', targetScore: 120, dailyHours: 2 },
+      { name: '经济类综合能力（396）', color: '#14B8A6', targetScore: 120, dailyHours: 2 },
+      { name: '西医综合（306）', color: '#EC4899', targetScore: 120, dailyHours: 2.5 },
+      { name: '中医综合（307）', color: '#D946EF', targetScore: 120, dailyHours: 2.5 },
+      { name: '护理综合（308）', color: '#F43F5E', targetScore: 120, dailyHours: 2 },
+    ],
+  },
 ];
 
-const COLORS = ['#EF4444', '#3B82F6', '#22C55E', '#8B5CF6', '#F97316', '#F472B6', '#06B6D4', '#EAB308', '#14B8A6', '#A78BFA'];
+const COLORS = ['#EF4444', '#3B82F6', '#22C55E', '#8B5CF6', '#F97316', '#F472B6', '#06B6D4', '#EAB308', '#14B8A6', '#A78BFA', '#EC4899', '#D946EF'];
 
 export default function Register() {
   const { register } = useAuth();
@@ -33,6 +55,7 @@ export default function Register() {
     subjects: [],
   });
   const [showPwd, setShowPwd] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState({ '公共课': true, '英语': true, '数学': true, '专业课（常见）': true });
   const [showCustom, setShowCustom] = useState(false);
   const [customForm, setCustomForm] = useState({ name: '', color: COLORS[0], targetScore: 100, dailyHours: 1.5 });
 
@@ -57,6 +80,10 @@ export default function Register() {
     set('subjects', [...form.subjects, { ...customForm }]);
     setCustomForm({ name: '', color: COLORS[0], targetScore: 100, dailyHours: 1.5 });
     setShowCustom(false);
+  };
+
+  const toggleCategory = (name) => {
+    setExpandedCategories((prev) => ({ ...prev, [name]: !prev[name] }));
   };
 
   const canNext = () => {
@@ -161,30 +188,43 @@ export default function Register() {
         )}
 
         {step === 2 && (
-          <div className="space-y-4">
-            <p className="text-sm text-gray-400">选择你需要备考的科目（可多选，选后可调整目标分值和每日时长）</p>
+          <div className="space-y-3">
+            <p className="text-sm text-gray-400 mb-2">选择你需要备考的科目（可多选）</p>
 
-            <div className="flex flex-wrap gap-2">
-              {PRESET_SUBJECTS.map((subj) => {
-                const selected = form.subjects.find((s) => s.name === subj.name);
-                return (
-                  <button key={subj.name} onClick={() => toggleSubject(subj)}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-all ${
-                      selected ? 'border-brand-500 bg-brand-500/10 text-brand-400' : 'border-white/10 bg-surface-1 text-gray-400'
-                    }`}>
-                    <span className="w-2 h-2 rounded-full" style={{ background: subj.color }} />
-                    {subj.name}
-                  </button>
-                );
-              })}
-              <button onClick={() => setShowCustom(true)}
-                className="flex items-center gap-1 px-3 py-2 rounded-xl border border-dashed border-white/10 text-xs text-gray-500 hover:border-brand-500 hover:text-brand-400 transition-colors">
-                <Plus size={12} /> 自定义
-              </button>
-            </div>
+            {SUBJECT_CATEGORIES.map((cat) => (
+              <div key={cat.name} className="card !p-0 overflow-hidden">
+                <button onClick={() => toggleCategory(cat.name)}
+                  className="w-full flex items-center justify-between p-3 hover:bg-white/5 transition-colors">
+                  <span className="text-xs font-semibold text-gray-300">{cat.name}</span>
+                  {expandedCategories[cat.name] ? <ChevronUp size={14} className="text-gray-500" /> : <ChevronDown size={14} className="text-gray-500" />}
+                </button>
+                {expandedCategories[cat.name] && (
+                  <div className="px-3 pb-3 flex flex-wrap gap-2">
+                    {cat.subjects.map((subj) => {
+                      const selected = form.subjects.find((s) => s.name === subj.name);
+                      return (
+                        <button key={subj.name} onClick={() => toggleSubject(subj)}
+                          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-all ${
+                            selected ? 'border-brand-500 bg-brand-500/10 text-brand-400' : 'border-white/10 bg-surface-2 text-gray-400'
+                          }`}>
+                          <span className="w-2 h-2 rounded-full" style={{ background: subj.color }} />
+                          {subj.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            <button onClick={() => setShowCustom(true)}
+              className="w-full py-2.5 border border-dashed border-white/10 rounded-xl text-xs text-gray-500 flex items-center justify-center gap-2 hover:border-brand-500 hover:text-brand-400 transition-colors">
+              <Plus size={14} /> 添加自定义科目
+            </button>
 
             {form.subjects.length > 0 && (
-              <div className="space-y-3 mt-4">
+              <div className="mt-3 space-y-2">
+                <p className="text-xs text-gray-500 font-medium">已选科目（可调整目标）</p>
                 {form.subjects.map((s) => (
                   <div key={s.name} className="card !p-3">
                     <div className="flex items-center justify-between mb-2">
@@ -240,7 +280,7 @@ export default function Register() {
             <div className="space-y-4">
               <div>
                 <label className="text-xs text-gray-400 mb-1.5 block">科目名称</label>
-                <input className="input-field" placeholder="如：日语" value={customForm.name}
+                <input className="input-field" placeholder="如：日语、专业课二" value={customForm.name}
                   onChange={(e) => setCustomForm({ ...customForm, name: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -257,7 +297,7 @@ export default function Register() {
               </div>
               <div>
                 <label className="text-xs text-gray-400 mb-1.5 block">颜色</label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   {COLORS.map((c) => (
                     <button key={c} onClick={() => setCustomForm({ ...customForm, color: c })}
                       className={`w-7 h-7 rounded-full transition-all ${customForm.color === c ? 'ring-2 ring-white ring-offset-2 ring-offset-surface-1' : ''}`}

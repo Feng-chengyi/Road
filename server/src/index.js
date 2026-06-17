@@ -9,6 +9,7 @@ import authRoutes from './routes/auth.js';
 import subjectRoutes from './routes/subjects.js';
 import planRoutes from './routes/plans.js';
 import profileRoutes from './routes/profile.js';
+import statsRoutes from './routes/stats.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -21,6 +22,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/subjects', authMiddleware, subjectRoutes);
 app.use('/api/plans', authMiddleware, planRoutes);
 app.use('/api/profile', authMiddleware, profileRoutes);
+app.use('/api/stats', authMiddleware, statsRoutes);
 
 app.get('/api/health', (_, res) => res.json({ ok: true }));
 

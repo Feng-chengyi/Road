@@ -11,7 +11,7 @@ function formatTimer(seconds) {
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
   if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  return `${m}:${String(s).padStart(2, '0')}`;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
 const DAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
@@ -22,19 +22,26 @@ export default function Plans() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBatchModal, setShowBatchModal] = useState(false);
-  const [activeTimer, setActiveTimer] = useState(null);
+  const [activeTimerId, setActiveTimerId] = useState(null);
   const [timerElapsed, setTimerElapsed] = useState(0);
   const timerRef = useRef(null);
-  const [form, setForm] = useState({ name: '', subjectId: '', time: '09:00', duration: '1h' });
+  const [form, setForm] = useState({ name: '', subjectId: '', duration: '1h' });
   const [batchForm, setBatchForm] = useState({
-    name: '', subjectId: '', time: '09:00', duration: '1h',
+    name: '', subjectId: '', duration: '1h',
     recurrence: 'daily', repeatStart: formatDate(new Date()), repeatEnd: formatDate(new Date(Date.now() + 30 * 86400000)),
   });
 
   const dateStr = formatDate(selectedDate);
 
   const load = useCallback(() => {
-    api.get(`/plans?date=${dateStr}`).then((r) => setPlans(r.data));
+    api.get(`/plans?date=${dateStr}`).then((r) => {
+      setPlans(r.data);
+      const active = r.data.find((p) => p.started_at && !p.done);
+      if (active) {
+        setActiveTimerId(active.id);
+        setTimerElapsed(active.elapsed_seconds || 0);
+      }
+    });
   }, [dateStr]);
 
   useEffect(() => { api.get('/subjects').then((r) => setSubjects(r.data)); }, []);
@@ -42,36 +49,36 @@ export default function Plans() {
 
   // Timer tick
   useEffect(() => {
-    if (activeTimer) {
+    if (activeTimerId) {
       timerRef.current = setInterval(() => {
         setTimerElapsed((prev) => prev + 1);
       }, 1000);
     }
     return () => clearInterval(timerRef.current);
-  }, [activeTimer]);
+  }, [activeTimerId]);
 
   const startTimer = async (plan) => {
-    if (activeTimer && activeTimer.id !== plan.id) {
-      await api.put(`/plans/${activeTimer.id}/timer`, { action: 'pause' });
+    if (activeTimerId && activeTimerId !== plan.id) {
+      await api.put(`/plans/${activeTimerId}/timer`, { action: 'pause' });
     }
     await api.put(`/plans/${plan.id}/timer`, { action: 'start' });
-    setActiveTimer(plan);
+    setActiveTimerId(plan.id);
     setTimerElapsed(plan.elapsed_seconds || 0);
     load();
   };
 
   const pauseTimer = async () => {
-    if (!activeTimer) return;
-    await api.put(`/plans/${activeTimer.id}/timer`, { action: 'pause' });
-    setActiveTimer(null);
+    if (!activeTimerId) return;
+    await api.put(`/plans/${activeTimerId}/timer`, { action: 'pause' });
+    setActiveTimerId(null);
     setTimerElapsed(0);
     load();
   };
 
   const resetTimer = async (plan) => {
     await api.put(`/plans/${plan.id}/timer`, { action: 'reset' });
-    if (activeTimer?.id === plan.id) {
-      setActiveTimer(null);
+    if (activeTimerId === plan.id) {
+      setActiveTimerId(null);
       setTimerElapsed(0);
     }
     load();
@@ -79,8 +86,8 @@ export default function Plans() {
 
   const finishTimer = async (plan) => {
     await api.put(`/plans/${plan.id}/timer`, { action: 'finish' });
-    if (activeTimer?.id === plan.id) {
-      setActiveTimer(null);
+    if (activeTimerId === plan.id) {
+      setActiveTimerId(null);
       setTimerElapsed(0);
     }
     load();
@@ -90,7 +97,7 @@ export default function Plans() {
     if (!form.name.trim()) return;
     await api.post('/plans', { ...form, date: dateStr, subjectId: form.subjectId || null });
     setShowAddModal(false);
-    setForm({ name: '', subjectId: '', time: '09:00', duration: '1h' });
+    setForm({ name: '', subjectId: '', duration: '1h' });
     load();
   };
 
@@ -99,7 +106,7 @@ export default function Plans() {
     await api.post('/plans/batch', { ...batchForm, subjectId: batchForm.subjectId || null });
     setShowBatchModal(false);
     setBatchForm({
-      name: '', subjectId: '', time: '09:00', duration: '1h',
+      name: '', subjectId: '', duration: '1h',
       recurrence: 'daily', repeatStart: formatDate(new Date()), repeatEnd: formatDate(new Date(Date.now() + 30 * 86400000)),
     });
     load();
@@ -114,7 +121,10 @@ export default function Plans() {
 
   const doneCount = plans.filter((p) => p.done).length;
   const completion = plans.length ? Math.round((doneCount / plans.length) * 100) : 0;
-  const totalElapsed = plans.reduce((sum, p) => sum + (p.elapsed_seconds || 0), 0);
+  const totalElapsed = plans.reduce((sum, p) => {
+    if (p.id === activeTimerId) return sum + timerElapsed;
+    return sum + (p.elapsed_seconds || 0);
+  }, 0);
 
   return (
     <div className="page">
@@ -163,8 +173,8 @@ export default function Plans() {
             {plans.map((p) => (
               <PlanCard
                 key={p.id} plan={p}
-                isActive={activeTimer?.id === p.id}
-                elapsed={activeTimer?.id === p.id ? timerElapsed : (p.elapsed_seconds || 0)}
+                isActive={activeTimerId === p.id}
+                elapsed={activeTimerId === p.id ? timerElapsed : (p.elapsed_seconds || 0)}
                 onStart={() => startTimer(p)}
                 onPause={pauseTimer}
                 onReset={() => resetTimer(p)}
@@ -175,9 +185,9 @@ export default function Plans() {
         )}
 
         <div className="flex gap-2">
-          <button onClick={() => { setShowAddModal(true); setForm({ name: '', subjectId: subjects[0]?.id || '', time: '09:00', duration: '1h' }); }}
+          <button onClick={() => { setShowAddModal(true); setForm({ name: '', subjectId: subjects[0]?.id || '', duration: '1h' }); }}
             className="flex-1 py-3 border border-dashed border-white/10 rounded-xl text-sm text-gray-500 flex items-center justify-center gap-2 hover:border-brand-500 hover:text-brand-400 transition-colors">
-            <Plus size={16} /> 单次计划
+            <Plus size={16} /> 添加计划
           </button>
           <button onClick={() => { setShowBatchModal(true); setBatchForm((f) => ({ ...f, name: '', subjectId: subjects[0]?.id || '' })); }}
             className="flex-1 py-3 border border-dashed border-white/10 rounded-xl text-sm text-gray-500 flex items-center justify-center gap-2 hover:border-brand-500 hover:text-brand-400 transition-colors">
@@ -210,17 +220,10 @@ export default function Plans() {
                   {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-gray-400 mb-1.5 block">开始时间</label>
-                  <input className="input-field" type="time" value={form.time}
-                    onChange={(e) => setForm({ ...form, time: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 mb-1.5 block">时长</label>
-                  <input className="input-field" placeholder="如：1.5h" value={form.duration}
-                    onChange={(e) => setForm({ ...form, duration: e.target.value })} />
-                </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1.5 block">计划学时</label>
+                <input className="input-field" placeholder="如：1.5h 或 90min" value={form.duration}
+                  onChange={(e) => setForm({ ...form, duration: e.target.value })} />
               </div>
             </div>
             <button className="btn-primary mt-6" onClick={addPlan}>确认添加</button>
@@ -252,17 +255,10 @@ export default function Plans() {
                   {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-gray-400 mb-1.5 block">开始时间</label>
-                  <input className="input-field" type="time" value={batchForm.time}
-                    onChange={(e) => setBatchForm({ ...batchForm, time: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 mb-1.5 block">时长</label>
-                  <input className="input-field" placeholder="如：1.5h" value={batchForm.duration}
-                    onChange={(e) => setBatchForm({ ...batchForm, duration: e.target.value })} />
-                </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1.5 block">计划学时</label>
+                <input className="input-field" placeholder="如：1.5h" value={batchForm.duration}
+                  onChange={(e) => setBatchForm({ ...batchForm, duration: e.target.value })} />
               </div>
               <div>
                 <label className="text-xs text-gray-400 mb-1.5 block">重复类型</label>
@@ -315,7 +311,7 @@ function PlanCard({ plan, isActive, elapsed, onStart, onPause, onReset, onFinish
         </div>
         <div className="flex-1 min-w-0">
           <p className={`text-sm truncate ${plan.done ? 'text-gray-500 line-through' : ''}`}>{plan.name}</p>
-          <p className="text-xs text-gray-500">{plan.time} · {plan.duration}</p>
+          <p className="text-xs text-gray-500">计划 {plan.duration}</p>
         </div>
         {plan.subject_name && (
           <span className="text-[10px] px-2 py-0.5 rounded-full flex-shrink-0"
@@ -329,33 +325,37 @@ function PlanCard({ plan, isActive, elapsed, onStart, onPause, onReset, onFinish
       </div>
 
       {!plan.done && (
-        <div className="mt-3 flex items-center gap-2">
-          <div className={`font-mono text-lg font-bold ${isRunning ? 'text-brand-400' : displayTime > 0 ? 'text-green-400' : 'text-gray-600'}`}>
+        <div className="mt-3 flex items-center gap-3">
+          <div className={`font-mono text-xl font-bold tracking-wider ${
+            isRunning ? 'text-brand-400' : displayTime > 0 ? 'text-green-400' : 'text-gray-600'
+          }`}>
             {formatTimer(displayTime)}
           </div>
           <div className="flex-1" />
-          <div className="flex gap-1.5">
+          <div className="flex gap-2">
             {!isRunning ? (
               <button onClick={onStart}
-                className="w-8 h-8 rounded-lg bg-brand-500/20 flex items-center justify-center text-brand-400 hover:bg-brand-500/30 transition-colors">
-                <Play size={14} fill="currentColor" />
+                className="h-9 px-4 rounded-xl bg-brand-500 flex items-center justify-center gap-1.5 text-white text-xs font-medium hover:bg-brand-600 transition-colors">
+                <Play size={14} fill="currentColor" /> 开始
               </button>
             ) : (
-              <button onClick={onPause}
-                className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400 hover:bg-amber-500/30 transition-colors">
-                <Pause size={14} />
-              </button>
+              <>
+                <button onClick={onPause}
+                  className="h-9 px-3 rounded-xl bg-amber-500/20 flex items-center justify-center gap-1 text-amber-400 text-xs font-medium hover:bg-amber-500/30 transition-colors">
+                  <Pause size={14} /> 暂停
+                </button>
+                {displayTime > 0 && (
+                  <button onClick={onFinish}
+                    className="h-9 px-3 rounded-xl bg-green-500/20 flex items-center justify-center gap-1 text-green-400 text-xs font-medium hover:bg-green-500/30 transition-colors">
+                    <Square size={12} fill="currentColor" /> 完成
+                  </button>
+                )}
+              </>
             )}
-            {displayTime > 0 && !isRunning && (
+            {!isRunning && displayTime > 0 && (
               <button onClick={onReset}
-                className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:bg-white/10 transition-colors">
+                className="h-9 w-9 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 hover:bg-white/10 transition-colors">
                 <RotateCcw size={14} />
-              </button>
-            )}
-            {displayTime > 0 && (
-              <button onClick={onFinish}
-                className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center text-green-400 hover:bg-green-500/30 transition-colors">
-                <Square size={12} fill="currentColor" />
               </button>
             )}
           </div>

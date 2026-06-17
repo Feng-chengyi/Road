@@ -7,7 +7,8 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [subjects, setSubjects] = useState([]);
   const [plans, setPlans] = useState([]);
-  const [records, setRecords] = useState([]);
+  const [weekData, setWeekData] = useState([]);
+  const [stats, setStats] = useState(null);
   const [todayStr] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -16,15 +17,19 @@ export default function Dashboard() {
   useEffect(() => {
     api.get('/subjects').then((r) => setSubjects(r.data));
     api.get(`/plans?date=${todayStr}`).then((r) => setPlans(r.data));
+    api.get('/stats/weekly').then((r) => setWeekData(r.data));
+    api.get('/stats/overview').then((r) => setStats(r.data));
   }, [todayStr]);
 
   const todayPlans = plans;
   const doneCount = todayPlans.filter((p) => p.done).length;
   const totalCount = todayPlans.length;
   const completion = totalCount ? Math.round((doneCount / totalCount) * 100) : 0;
-  const totalElapsed = todayPlans.reduce((sum, p) => sum + (p.elapsed_seconds || 0), 0);
+
   const goalHours = user?.daily_goal || 6;
-  const studiedHours = totalElapsed / 3600;
+  const studiedHours = stats?.todayHours || 0;
+  const maxVal = Math.max(...weekData.map((d) => d.hours), 1);
+  const subjectTotal = subjects.reduce((sum, s) => sum + (s.total_hours || 0), 0);
 
   const greeting = (() => {
     const h = new Date().getHours();
@@ -34,20 +39,6 @@ export default function Dashboard() {
     if (h < 18) return '下午好';
     return '晚上好';
   })();
-
-  // Generate fake weekly data for chart (in real app, fetch from API)
-  const weekData = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
-    const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
-    return {
-      label: `周${dayNames[d.getDay()]}`,
-      value: i === 6 ? studiedHours : +(Math.random() * 4 + 2).toFixed(1),
-    };
-  });
-  const maxVal = Math.max(...weekData.map((d) => d.value), 1);
-
-  const subjectTotal = subjects.reduce((sum, s) => sum + (s.total_hours || 0), 0);
 
   return (
     <div className="page">
@@ -64,14 +55,13 @@ export default function Dashboard() {
       </div>
 
       <div className="px-5 space-y-4">
-        {/* Stats row */}
         <div className="grid grid-cols-3 gap-3">
           <StatCard icon={<Clock size={16} />} label="今日学时"
-            value={`${studiedHours.toFixed(1)}h`} sub={`目标 ${goalHours}h`} color="text-brand-400" />
+            value={`${studiedHours}h`} sub={`目标 ${goalHours}h`} color="text-brand-400" />
           <StatCard icon={<Flame size={16} />} label="累计天数"
-            value={user?.stats?.totalDays || 0} sub={`连续打卡`} color="text-green-400" />
+            value={stats?.totalDays || 0} sub={`连续 ${stats?.streak || 0} 天`} color="text-green-400" />
           <StatCard icon={<TrendingUp size={16} />} label="完成率"
-            value={`${completion}%`} sub={`${doneCount}/${totalCount}`} color="text-purple-400" />
+            value={`${stats?.weeklyCompletion || completion}%`} sub={`${doneCount}/${totalCount}`} color="text-purple-400" />
         </div>
 
         {/* Daily goal progress */}
@@ -87,12 +77,12 @@ export default function Dashboard() {
               style={{ width: `${Math.min(100, studiedHours / goalHours * 100)}%` }} />
           </div>
           <div className="flex justify-between mt-1.5">
-            <span className="text-[10px] text-gray-500">{studiedHours.toFixed(1)}h 已学</span>
+            <span className="text-[10px] text-gray-500">{studiedHours}h 已学</span>
             <span className="text-[10px] text-gray-500">{goalHours}h 目标</span>
           </div>
         </div>
 
-        {/* Weekly trend chart */}
+        {/* Weekly trend chart - real data */}
         <div className="card">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold flex items-center gap-2">
@@ -100,21 +90,27 @@ export default function Dashboard() {
             </h2>
             <span className="text-xs text-gray-500">单位: 小时</span>
           </div>
-          <div className="flex items-end gap-1.5" style={{ height: 120 }}>
-            {weekData.map((d, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                <span className="text-[9px] font-mono text-gray-500">{d.value}</span>
-                <div className="w-full rounded-t-md transition-all duration-500"
-                  style={{
-                    height: `${(d.value / maxVal) * 80}px`,
-                    background: i === 6
-                      ? 'linear-gradient(180deg, #6366F1, #4F46E5)'
-                      : 'linear-gradient(180deg, rgba(99,102,241,0.4), rgba(99,102,241,0.15))',
-                  }} />
-                <span className="text-[9px] text-gray-500">{d.label}</span>
-              </div>
-            ))}
-          </div>
+          {weekData.length > 0 ? (
+            <div className="flex items-end gap-1.5" style={{ height: 120 }}>
+              {weekData.map((d, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                  <span className="text-[9px] font-mono text-gray-500">{d.hours}</span>
+                  <div className="w-full rounded-t-md transition-all duration-500"
+                    style={{
+                      height: `${d.hours > 0 ? Math.max((d.hours / maxVal) * 80, 4) : 2}px`,
+                      background: d.label === '今天'
+                        ? 'linear-gradient(180deg, #6366F1, #4F46E5)'
+                        : d.hours > 0
+                          ? 'linear-gradient(180deg, rgba(99,102,241,0.5), rgba(99,102,241,0.2))'
+                          : 'rgba(255,255,255,0.03)',
+                    }} />
+                  <span className={`text-[9px] ${d.label === '今天' ? 'text-brand-400 font-medium' : 'text-gray-500'}`}>{d.label}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-500 text-center py-6">暂无学习数据</p>
+          )}
         </div>
 
         {/* Subject progress */}
@@ -135,7 +131,7 @@ export default function Dashboard() {
                       {s.name}
                     </span>
                     <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-gray-500">{s.total_hours || 0}h</span>
+                      <span className="text-[10px] text-gray-500">{(s.total_hours || 0).toFixed(0)}h</span>
                       <span className="text-xs font-mono" style={{ color: s.color }}>{s.progress}%</span>
                     </div>
                   </div>
@@ -168,7 +164,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className={`text-xs truncate ${p.done ? 'text-gray-500 line-through' : ''}`}>{p.name}</p>
-                    <p className="text-[10px] text-gray-600">{p.time}</p>
+                    <p className="text-[10px] text-gray-600">{p.duration}</p>
                   </div>
                   {p.subject_name && (
                     <span className="text-[9px] px-1.5 py-0.5 rounded-full flex-shrink-0"
