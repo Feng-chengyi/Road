@@ -1,16 +1,26 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { GraduationCap, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { GraduationCap, Eye, EyeOff, ArrowLeft, Plus, X } from 'lucide-react';
 
 const STEPS = ['联系方式', '基本信息', '备考科目'];
 
-const DEFAULT_SUBJECTS = [
-  { name: '政治', color: '#EF4444' },
-  { name: '英语', color: '#3B82F6' },
-  { name: '数学', color: '#22C55E' },
-  { name: '专业课', color: '#8B5CF6' },
+const PRESET_SUBJECTS = [
+  { name: '政治', color: '#EF4444', targetScore: 75, dailyHours: 1.5 },
+  { name: '英语一', color: '#3B82F6', targetScore: 70, dailyHours: 2 },
+  { name: '英语二', color: '#06B6D4', targetScore: 70, dailyHours: 2 },
+  { name: '数学一', color: '#22C55E', targetScore: 120, dailyHours: 3 },
+  { name: '数学二', color: '#10B981', targetScore: 120, dailyHours: 2.5 },
+  { name: '数学三', color: '#34D399', targetScore: 120, dailyHours: 2.5 },
+  { name: '计算机学科专业基础', color: '#8B5CF6', targetScore: 120, dailyHours: 2.5 },
+  { name: '计算机学科专业综合', color: '#A78BFA', targetScore: 120, dailyHours: 2.5 },
+  { name: '心理学专业综合', color: '#F472B6', targetScore: 120, dailyHours: 2 },
+  { name: '法律硕士专业基础', color: '#F97316', targetScore: 120, dailyHours: 2 },
+  { name: '教育学专业基础', color: '#EAB308', targetScore: 120, dailyHours: 2 },
+  { name: '经济学综合', color: '#14B8A6', targetScore: 120, dailyHours: 2 },
 ];
+
+const COLORS = ['#EF4444', '#3B82F6', '#22C55E', '#8B5CF6', '#F97316', '#F472B6', '#06B6D4', '#EAB308', '#14B8A6', '#A78BFA'];
 
 export default function Register() {
   const { register } = useAuth();
@@ -23,13 +33,30 @@ export default function Register() {
     subjects: [],
   });
   const [showPwd, setShowPwd] = useState(false);
+  const [showCustom, setShowCustom] = useState(false);
+  const [customForm, setCustomForm] = useState({ name: '', color: COLORS[0], targetScore: 100, dailyHours: 1.5 });
 
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }));
 
-  const toggleSubject = (name) => {
-    set('subjects', form.subjects.includes(name)
-      ? form.subjects.filter((s) => s !== name)
-      : [...form.subjects, name]);
+  const toggleSubject = (subj) => {
+    const exists = form.subjects.find((s) => s.name === subj.name);
+    if (exists) {
+      set('subjects', form.subjects.filter((s) => s.name !== subj.name));
+    } else {
+      set('subjects', [...form.subjects, { ...subj }]);
+    }
+  };
+
+  const updateSubject = (name, key, val) => {
+    set('subjects', form.subjects.map((s) => s.name === name ? { ...s, [key]: val } : s));
+  };
+
+  const addCustomSubject = () => {
+    if (!customForm.name.trim()) return;
+    if (form.subjects.find((s) => s.name === customForm.name)) return;
+    set('subjects', [...form.subjects, { ...customForm }]);
+    setCustomForm({ name: '', color: COLORS[0], targetScore: 100, dailyHours: 1.5 });
+    setShowCustom(false);
   };
 
   const canNext = () => {
@@ -76,7 +103,7 @@ export default function Register() {
         </div>
       )}
 
-      <div className="flex-1">
+      <div className="flex-1 overflow-y-auto">
         {step === 0 && (
           <div className="space-y-4">
             <div>
@@ -135,23 +162,56 @@ export default function Register() {
 
         {step === 2 && (
           <div className="space-y-4">
-            <p className="text-sm text-gray-400">选择你需要备考的科目（可多选）</p>
-            <div className="flex flex-wrap gap-3">
-              {DEFAULT_SUBJECTS.map(({ name, color }) => (
-                <button
-                  key={name}
-                  onClick={() => toggleSubject(name)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all ${
-                    form.subjects.includes(name)
-                      ? 'border-brand-500 bg-brand-500/10 text-brand-400'
-                      : 'border-white/10 bg-surface-1 text-gray-400'
-                  }`}
-                >
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
-                  {name}
-                </button>
-              ))}
+            <p className="text-sm text-gray-400">选择你需要备考的科目（可多选，选后可调整目标分值和每日时长）</p>
+
+            <div className="flex flex-wrap gap-2">
+              {PRESET_SUBJECTS.map((subj) => {
+                const selected = form.subjects.find((s) => s.name === subj.name);
+                return (
+                  <button key={subj.name} onClick={() => toggleSubject(subj)}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-all ${
+                      selected ? 'border-brand-500 bg-brand-500/10 text-brand-400' : 'border-white/10 bg-surface-1 text-gray-400'
+                    }`}>
+                    <span className="w-2 h-2 rounded-full" style={{ background: subj.color }} />
+                    {subj.name}
+                  </button>
+                );
+              })}
+              <button onClick={() => setShowCustom(true)}
+                className="flex items-center gap-1 px-3 py-2 rounded-xl border border-dashed border-white/10 text-xs text-gray-500 hover:border-brand-500 hover:text-brand-400 transition-colors">
+                <Plus size={12} /> 自定义
+              </button>
             </div>
+
+            {form.subjects.length > 0 && (
+              <div className="space-y-3 mt-4">
+                {form.subjects.map((s) => (
+                  <div key={s.name} className="card !p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
+                        {s.name}
+                      </span>
+                      <button onClick={() => toggleSubject(s)} className="text-gray-500 hover:text-red-400">
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] text-gray-500 block mb-1">目标分值</label>
+                        <input className="input-field !py-1.5 !text-xs" type="number" value={s.targetScore}
+                          onChange={(e) => updateSubject(s.name, 'targetScore', +e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-gray-500 block mb-1">每日时长(h)</label>
+                        <input className="input-field !py-1.5 !text-xs" type="number" step="0.5" value={s.dailyHours}
+                          onChange={(e) => updateSubject(s.name, 'dailyHours', +e.target.value)} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -167,6 +227,49 @@ export default function Register() {
           </button>
         )}
       </div>
+
+      {showCustom && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center" onClick={() => setShowCustom(false)}>
+          <div className="bg-surface-1 rounded-t-3xl w-full max-w-[430px] p-6 pb-10 animate-slide-up" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold">自定义科目</h2>
+              <button onClick={() => setShowCustom(false)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-gray-400 mb-1.5 block">科目名称</label>
+                <input className="input-field" placeholder="如：日语" value={customForm.name}
+                  onChange={(e) => setCustomForm({ ...customForm, name: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1.5 block">目标分值</label>
+                  <input className="input-field" type="number" value={customForm.targetScore}
+                    onChange={(e) => setCustomForm({ ...customForm, targetScore: +e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1.5 block">每日时长(h)</label>
+                  <input className="input-field" type="number" step="0.5" value={customForm.dailyHours}
+                    onChange={(e) => setCustomForm({ ...customForm, dailyHours: +e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1.5 block">颜色</label>
+                <div className="flex gap-2">
+                  {COLORS.map((c) => (
+                    <button key={c} onClick={() => setCustomForm({ ...customForm, color: c })}
+                      className={`w-7 h-7 rounded-full transition-all ${customForm.color === c ? 'ring-2 ring-white ring-offset-2 ring-offset-surface-1' : ''}`}
+                      style={{ background: c }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+            <button className="btn-primary mt-6" onClick={addCustomSubject}>添加</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

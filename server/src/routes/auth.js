@@ -15,7 +15,7 @@ router.post('/register', [
     return res.status(400).json({ error: errors.array()[0].msg });
   }
 
-  const { name, email, phone, password, school, major, examYear } = req.body;
+  const { name, email, phone, password, school, major, examYear, subjects } = req.body;
   if (!email && !phone) {
     return res.status(400).json({ error: '请提供邮箱或手机号' });
   }
@@ -34,10 +34,22 @@ router.post('/register', [
     [name, email || null, phone || null, hashed, school || '', major || '', examYear || 2026]
   );
 
-  const token = signToken(result.lastInsertRowid);
+  const userId = result.lastInsertRowid;
+
+  // Create subjects from registration
+  if (Array.isArray(subjects) && subjects.length > 0) {
+    subjects.forEach((s) => {
+      run(
+        'INSERT INTO subjects (user_id, name, color, target_score, daily_hours) VALUES (?, ?, ?, ?, ?)',
+        [userId, s.name, s.color || '#6366F1', s.targetScore || 100, s.dailyHours || 1.5]
+      );
+    });
+  }
+
+  const token = signToken(userId);
   const user = queryOne(
     'SELECT id, name, email, phone, school, major, exam_year, daily_goal FROM users WHERE id = ?',
-    [result.lastInsertRowid]
+    [userId]
   );
 
   res.json({ token, user });

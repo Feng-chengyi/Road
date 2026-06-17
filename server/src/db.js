@@ -54,6 +54,11 @@ export async function initDB() {
     time TEXT DEFAULT '09:00',
     duration TEXT DEFAULT '1h',
     done INTEGER DEFAULT 0,
+    elapsed_seconds INTEGER DEFAULT 0,
+    started_at TEXT,
+    recurrence TEXT DEFAULT 'none',
+    repeat_start TEXT,
+    repeat_end TEXT,
     created_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE SET NULL
@@ -72,6 +77,14 @@ export async function initDB() {
     FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE SET NULL
   )`);
 
+  // Migrate: add new columns if missing (for existing databases)
+  const planCols = queryAll("PRAGMA table_info(plans)").map(c => c.name);
+  if (!planCols.includes('elapsed_seconds')) db.run("ALTER TABLE plans ADD COLUMN elapsed_seconds INTEGER DEFAULT 0");
+  if (!planCols.includes('started_at')) db.run("ALTER TABLE plans ADD COLUMN started_at TEXT");
+  if (!planCols.includes('recurrence')) db.run("ALTER TABLE plans ADD COLUMN recurrence TEXT DEFAULT 'none'");
+  if (!planCols.includes('repeat_start')) db.run("ALTER TABLE plans ADD COLUMN repeat_start TEXT");
+  if (!planCols.includes('repeat_end')) db.run("ALTER TABLE plans ADD COLUMN repeat_end TEXT");
+
   save();
   return db;
 }
@@ -87,7 +100,6 @@ export function getDb() {
   return db;
 }
 
-// Query helpers that return plain objects
 export function queryAll(sql, params = []) {
   const stmt = db.prepare(sql);
   stmt.bind(params);
